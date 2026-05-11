@@ -7,7 +7,7 @@
 // ============================================================
 
 // useState för status, useEffect för att anropa API vid mount
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // Link för länk tillbaka till inloggning
 import { Link, useSearchParams } from 'react-router-dom'
@@ -25,8 +25,14 @@ export default function ConfirmEmail() {
   // Felmeddelande om bekräftelsen misslyckas
   const [error, setError] = useState('')
 
+  // Förhindra dubbelt anrop – React 18 StrictMode kör useEffect två gånger i dev
+  const hasRun = useRef(false)
+
   // Anropa bekräftelse-endpointen direkt när sidan laddas
   useEffect(() => {
+    if (hasRun.current) return
+    hasRun.current = true
+
     const userId = searchParams.get('userId')
     const token  = searchParams.get('token')
 
