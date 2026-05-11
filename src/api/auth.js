@@ -17,6 +17,13 @@ export function login(email, password) {
   })
 }
 
+export function register(email, password) {
+  return request('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, role: 'User' }),
+  })
+}
+
 export function logout(token) {
   return request('/api/auth/logout', {
     method: 'POST',

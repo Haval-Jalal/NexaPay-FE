@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { login } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 
@@ -78,6 +78,12 @@ export default function Login() {
             {loading ? 'Loggar in...' : 'Logga in'}
           </button>
         </form>
+        <p className="text-center text-gray-500 text-sm mt-6">
+          Inget konto?{' '}
+          <Link to="/register" className="text-indigo-400 hover:text-indigo-300 transition">
+            Skapa ett konto
+          </Link>
+        </p>
       </div>
     </div>
   )
