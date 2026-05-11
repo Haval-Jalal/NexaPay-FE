@@ -70,13 +70,18 @@ export default function Login() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Loggar in...' : 'Logga in'}
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Loggar in...' : 'Logga in'}
+            </button>
+          </div>
+          <Link to="/forgot-password" className="block text-center text-xs text-gray-500 hover:text-gray-400 transition">
+            Glömt lösenordet?
+          </Link>
         </form>
         <p className="text-center text-gray-500 text-sm mt-6">
           Inget konto?{' '}

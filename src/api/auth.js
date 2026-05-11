@@ -1,32 +1,22 @@
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5190'
+import { request, getToken } from './client'
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data?.message ?? 'Något gick fel')
-  return data
-}
+export const login = (email, password) =>
+  request('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
 
-export function login(email, password) {
-  return request('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  })
-}
+export const register = (email, password) =>
+  request('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password, role: 'User' }) })
 
-export function register(email, password) {
-  return request('/api/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({ email, password, role: 'User' }),
-  })
-}
+export const logout = () =>
+  request('/api/auth/logout', { method: 'POST' }, getToken())
 
-export function logout(token) {
-  return request('/api/auth/logout', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  })
-}
+export const confirmEmail = (userId, token) =>
+  request('/api/auth/confirm-email', { method: 'POST', body: JSON.stringify({ userId, token }) })
+
+export const forgotPassword = (email) =>
+  request('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) })
+
+export const resetPassword = (email, token, newPassword) =>
+  request('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, token, newPassword }) })
+
+export const changePassword = (currentPassword, newPassword) =>
+  request('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }, getToken())
