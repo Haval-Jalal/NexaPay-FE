@@ -25,6 +25,7 @@ import Login          from './pages/Login'           // Inloggning
 import Register       from './pages/Register'         // Registrering
 import ForgotPassword from './pages/ForgotPassword'   // Glömt lösenord
 import ResetPassword  from './pages/ResetPassword'    // Återställ lösenord
+import ConfirmEmail   from './pages/ConfirmEmail'     // Bekräfta e-post via länk
 
 // ---- Skyddade sidor (kräver inloggning) ----
 import Dashboard     from './pages/Dashboard'        // Kontoöversikt
@@ -58,6 +59,9 @@ export default function App() {
 
           {/* Återställ lösenord – länk från e-post med ?email=&token= */}
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Bekräfta e-post – länk från bekräftelsemailet med ?userId=&token= */}
+          <Route path="/confirm-email" element={<ConfirmEmail />} />
 
           {/* ---- Skyddade routes – kräver inloggning ---- */}
 
