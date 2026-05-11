@@ -23,11 +23,15 @@ export async function request(path, options = {}, token = null) {
   // Gör fetch-anropet mot API:et
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
 
-  // Tolka svaret som JSON
-  const data = await res.json()
+  // Läs body som text först – res.json() kraschar på tom body
+  const text = await res.text()
+  let data = null
+  if (text) {
+    try { data = JSON.parse(text) } catch { /* icke-JSON svar */ }
+  }
 
   // Om HTTP-statuskoden inte är 2xx, kasta ett fel med API:ets meddelande
-  if (!res.ok) throw new Error(data?.message ?? 'Något gick fel')
+  if (!res.ok) throw new Error(data?.message ?? `Serverfel (${res.status})`)
 
   // Returnera hela svaret (data.data innehåller den faktiska nyttolasten)
   return data
