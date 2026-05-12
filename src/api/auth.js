@@ -67,7 +67,12 @@ export function changePassword(currentPassword, newPassword) {
   return request(
     '/api/auth/change-password',
     { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) },
-    // Skicka med JWT-token – endpointen kräver inloggning
     getToken()
   )
+}
+
+// Hämta inloggad användares profil från servern
+// Används vid app-start för att synka roll och e-post om de ändrats
+export function getMe() {
+  return request('/api/auth/me', {}, getToken())
 }

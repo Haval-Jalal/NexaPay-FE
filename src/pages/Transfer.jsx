@@ -1,123 +1,116 @@
-// ============================================================
-// Transfer.jsx – src/pages
-// ============================================================
-// Sida för att överföra pengar mellan konton.
-// Användaren väljer från-konto, anger till-kontots ID (GUID),
-// belopp och ett valfritt meddelande.
-// ============================================================
-
-// useState för formulär och status, useEffect för att ladda konton
-import { useState, useEffect } from 'react'
-
-// Layout-komponenten med sidebar
+import { useState, useEffect, useRef } from 'react'
 import Layout from '../components/Layout'
-
-// API-funktion för att hämta konton (för from-dropdown)
-import { getAccounts } from '../api/accounts'
-
-// API-funktion för överföring
+import { getAccounts, lookupAccount } from '../api/accounts'
 import { transfer } from '../api/transactions'
+import { useAuth } from '../context/AuthContext'
+import { can } from '../utils/roles'
 
 export default function Transfer() {
-  // Användarens egna konton – används för "Från konto"-dropdown
-  const [accounts, setAccounts] = useState([])
+  const { user } = useAuth()
+  const role = user?.role
 
-  // Formulärdata för överföringen
-  const [form, setForm] = useState({
-    fromAccountId: '',   // ID på avsändarkontot
-    toAccountId: '',     // ID på mottagarkontot (matas in manuellt)
-    amount: '',          // Belopp att överföra
-    description: '',     // Valfritt meddelande
-  })
+  const [accounts, setAccounts]       = useState([])
+  const [form, setForm]               = useState({ fromAccountId: '', amount: '', description: '' })
+  const [toNumber, setToNumber]       = useState('')
+  const [recipient, setRecipient]     = useState(null)   // { id, accountName, accountNumber }
+  const [lookupState, setLookupState] = useState('idle') // idle | loading | found | notfound
+  const [submitting, setSubmitting]   = useState(false)
+  const [error, setError]             = useState('')
+  const [success, setSuccess]         = useState('')
+  const debounceRef = useRef(null)
 
-  // Laddningsstatus under överföringen
-  const [submitting, setSubmitting] = useState(false)
-
-  // Felmeddelande (t.ex. otillräckligt saldo)
-  const [error, setError] = useState('')
-
-  // Bekräftelsemeddelande efter lyckad överföring
-  const [success, setSuccess] = useState('')
-
-  // Hämta användarens öppna konton för dropdown vid mount
   useEffect(() => {
+    if (!can.transfer(role)) return
     getAccounts().then(res => {
-      // Filtrera bort frysta och stängda konton
-      const openAccounts = (res.data ?? []).filter(a => a.status === 'Open')
-      setAccounts(openAccounts)
+      const open = (res.data ?? []).filter(a => a.status === 'Open')
+      setAccounts(open)
+      if (open.length > 0) setForm(f => ({ ...f, fromAccountId: open[0].id }))
+    }).catch(() => {})
+  }, [role])
 
-      // Förvälj det första kontot om det finns konton
-      if (openAccounts.length > 0) {
-        setForm(f => ({ ...f, fromAccountId: openAccounts[0].id }))
-      }
-    }).catch(() => {
-      // Ignorera fel – användaren ser inga konton i dropdown
-    })
-  }, [])
-
-  // Hanterar överföringen
-  async function handleSubmit(e) {
-    // Förhindra sidladdning
-    e.preventDefault()
-
-    // Rensa gamla meddelanden
+  function handleToNumberChange(e) {
+    const val = e.target.value
+    setToNumber(val)
+    setRecipient(null)
     setError('')
     setSuccess('')
 
-    // Validera att från- och till-konto inte är samma
-    if (form.fromAccountId === form.toAccountId) {
-      setError('Från- och till-konto kan inte vara samma.')
+    clearTimeout(debounceRef.current)
+
+    if (!val.trim()) {
+      setLookupState('idle')
       return
     }
 
-    // Starta laddning
+    setLookupState('loading')
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await lookupAccount(val.trim())
+        setRecipient(res.data)
+        setLookupState('found')
+      } catch (e) {
+        setLookupState(e.message?.includes('404') || e.message?.toLowerCase().includes('hittades inte') ? 'notfound' : 'error')
+      }
+    }, 500)
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!recipient) return
+    setError('')
+    setSuccess('')
+    if (form.fromAccountId === recipient.id) {
+      setError('Från- och till-konto kan inte vara samma.')
+      return
+    }
     setSubmitting(true)
-
     try {
-      // Anropa transfer-endpointen
-      await transfer(form.fromAccountId, form.toAccountId, parseFloat(form.amount), form.description)
-
-      // Visa bekräftelse
-      setSuccess('Överföringen genomfördes!')
-
-      // Återställ to-fälten men behåll from-konto
-      setForm(f => ({ ...f, toAccountId: '', amount: '', description: '' }))
+      await transfer(form.fromAccountId, recipient.id, parseFloat(form.amount), form.description)
+      setSuccess(`Överföring på ${parseFloat(form.amount).toLocaleString('sv-SE', { style: 'currency', currency: 'SEK' })} till ${recipient.accountName} genomfördes!`)
+      setToNumber('')
+      setRecipient(null)
+      setLookupState('idle')
+      setForm(f => ({ ...f, amount: '', description: '' }))
     } catch (e) {
-      // Visa felmeddelande (t.ex. "Otillräckligt saldo")
       setError(e.message)
     } finally {
       setSubmitting(false)
     }
   }
 
-  // Hitta det valda från-kontot för att visa kontonummer under dropdown
   const fromAccount = accounts.find(a => a.id === form.fromAccountId)
+
+  if (!can.transfer(role)) {
+    return (
+      <Layout>
+        <div className="max-w-lg">
+          <h1 className="text-2xl font-bold text-white mb-4">Överföring</h1>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 text-yellow-300 text-sm">
+            Din roll ({role}) har inte behörighet att göra överföringar.
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>
       <div className="max-w-lg">
-
-        {/* Sidrubrik */}
         <h1 className="text-2xl font-bold text-white mb-8">Överföring</h1>
 
-        {/* Överföringsformulär */}
         <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-5">
-
-          {/* Felmeddelande */}
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5">
               {error}
             </p>
           )}
-
-          {/* Bekräftelsemeddelande */}
           {success && (
             <p className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-4 py-2.5">
               {success}
             </p>
           )}
 
-          {/* Från konto – dropdown med användarens öppna konton */}
+          {/* Från konto */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Från konto</label>
             <select
@@ -128,28 +121,47 @@ export default function Transfer() {
             >
               {accounts.map(a => (
                 <option key={a.id} value={a.id}>
-                  {/* Visa kontonamn och saldo i dropdown-alternativet */}
                   {a.accountName} — {a.balance.toLocaleString('sv-SE', { style: 'currency', currency: a.currency || 'SEK' })}
                 </option>
               ))}
             </select>
-            {/* Visa kontonumret under dropdown som hjälptext */}
             {fromAccount && (
               <p className="text-xs text-gray-500 mt-1">{fromAccount.accountNumber}</p>
             )}
           </div>
 
-          {/* Till konto – manuell inmatning av mottagarens konto-ID (GUID) */}
+          {/* Till konto – sök på kontonummer */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Till konto-ID</label>
+            <label className="block text-sm text-gray-400 mb-1">Till kontonummer</label>
             <input
               required
-              value={form.toAccountId}
-              onChange={e => setForm({ ...form, toAccountId: e.target.value })}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition font-mono text-sm"
+              value={toNumber}
+              onChange={handleToNumberChange}
+              placeholder="T.ex. SE1234567890"
+              className={`w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border transition focus:outline-none
+                ${lookupState === 'found'    ? 'border-green-500 focus:border-green-500' :
+                  lookupState === 'notfound' || lookupState === 'error' ? 'border-red-500 focus:border-red-500' :
+                                               'border-gray-700 focus:border-indigo-500'}`}
             />
-            <p className="text-xs text-gray-500 mt-1">Mottagarens konto-ID (GUID)</p>
+
+            {lookupState === 'loading' && (
+              <p className="text-xs text-gray-500 mt-1">Söker konto…</p>
+            )}
+            {lookupState === 'found' && recipient && (
+              <div className="mt-2 flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                <span className="text-green-400 text-sm">✓</span>
+                <div>
+                  <p className="text-sm text-white font-medium">{recipient.accountName}</p>
+                  <p className="text-xs text-gray-400">{recipient.accountNumber}</p>
+                </div>
+              </div>
+            )}
+            {lookupState === 'notfound' && (
+              <p className="text-xs text-red-400 mt-1">Inget konto hittades med det numret.</p>
+            )}
+            {lookupState === 'error' && (
+              <p className="text-xs text-red-400 mt-1">Sökningen misslyckades. Kontrollera anslutningen.</p>
+            )}
           </div>
 
           {/* Belopp */}
@@ -164,7 +176,7 @@ export default function Transfer() {
             />
           </div>
 
-          {/* Valfritt meddelande till mottagaren */}
+          {/* Meddelande */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Meddelande (valfritt)</label>
             <input
@@ -175,13 +187,12 @@ export default function Transfer() {
             />
           </div>
 
-          {/* Skicka-knapp – disabled om inga konton finns eller under överföring */}
           <button
             type="submit"
-            disabled={submitting || accounts.length === 0}
+            disabled={submitting || !recipient || accounts.length === 0}
             className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {submitting ? 'Genomför...' : 'Skicka'}
+            {submitting ? 'Genomför…' : 'Skicka'}
           </button>
         </form>
       </div>

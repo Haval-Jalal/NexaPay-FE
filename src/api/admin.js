@@ -17,3 +17,11 @@ export function adminCreateUser(email, password, role) {
     body: JSON.stringify({ email, password, role }),
   }, getToken())
 }
+
+export function listUsers() {
+  return request('/api/admin/users', {}, getToken())
+}
+
+export function deleteUser(id) {
+  return request(`/api/admin/users/${id}`, { method: 'DELETE' }, getToken())
+}
