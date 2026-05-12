@@ -4,4 +4,12 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    force: true,
+  },
+  server: {
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+  },
 })
