@@ -28,30 +28,28 @@ export default function Transfer() {
     }).catch(() => {})
   }, [role])
 
+  async function doLookup(val) {
+    if (!val.trim()) { setLookupState('idle'); return }
+    setLookupState('loading')
+    try {
+      const res = await lookupAccount(val.trim())
+      setRecipient(res.data)
+      setLookupState('found')
+    } catch (e) {
+      setLookupState(e.message?.includes('404') || e.message?.toLowerCase().includes('hittades inte') ? 'notfound' : 'error')
+    }
+  }
+
   function handleToNumberChange(e) {
     const val = e.target.value
     setToNumber(val)
     setRecipient(null)
     setError('')
     setSuccess('')
-
     clearTimeout(debounceRef.current)
-
-    if (!val.trim()) {
-      setLookupState('idle')
-      return
-    }
-
+    if (!val.trim()) { setLookupState('idle'); return }
     setLookupState('loading')
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await lookupAccount(val.trim())
-        setRecipient(res.data)
-        setLookupState('found')
-      } catch (e) {
-        setLookupState(e.message?.includes('404') || e.message?.toLowerCase().includes('hittades inte') ? 'notfound' : 'error')
-      }
-    }, 500)
+    debounceRef.current = setTimeout(() => doLookup(val), 500)
   }
 
   async function handleSubmit(e) {
@@ -160,7 +158,16 @@ export default function Transfer() {
               <p className="text-xs text-red-400 mt-1">Inget konto hittades med det numret.</p>
             )}
             {lookupState === 'error' && (
-              <p className="text-xs text-red-400 mt-1">Sökningen misslyckades. Kontrollera anslutningen.</p>
+              <div className="mt-1 flex items-center gap-3">
+                <p className="text-xs text-red-400">Sökningen misslyckades. Kontrollera anslutningen.</p>
+                <button
+                  type="button"
+                  onClick={() => doLookup(toNumber)}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 transition shrink-0"
+                >
+                  Försök igen
+                </button>
+              </div>
             )}
           </div>
 

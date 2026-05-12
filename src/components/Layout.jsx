@@ -63,6 +63,13 @@ export default function Layout({ children }) {
           )}
         </nav>
 
+        {role === 'Auditor' && (
+          <div className="mx-3 mb-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <p className="text-xs text-blue-400 font-medium">Skrivskyddad vy</p>
+            <p className="text-xs text-gray-500 mt-0.5">Auditor – enbart läsbehörighet</p>
+          </div>
+        )}
+
         <div className="px-4 py-4 border-t border-gray-800">
           <p className="text-xs text-gray-500 truncate mb-0.5">{user?.email}</p>
           <p className="text-xs text-indigo-400 mb-2">{role}</p>

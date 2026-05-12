@@ -36,10 +36,9 @@ export default function ConfirmEmail() {
     const userId = searchParams.get('userId')
     const token  = searchParams.get('token')
 
-    // Om parametrar saknas – visa felmeddelande direkt
+    // Om parametrar saknas – visa "kolla din e-post"-meddelande (redirect från Register)
     if (!userId || !token) {
-      setStatus('error')
-      setError('Ogiltig bekräftelselänk – userId eller token saknas.')
+      setStatus('pending')
       return
     }
 
@@ -61,6 +60,22 @@ export default function ConfirmEmail() {
         <h1 className="text-3xl font-bold text-white mb-8">NexaPay</h1>
 
         <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
+
+          {/* Väntar på e-postbekräftelse – visas när man omdirigeras hit från Register */}
+          {status === 'pending' && (
+            <>
+              <p className="text-indigo-400 font-semibold mb-2">Kontrollera din e-post</p>
+              <p className="text-gray-400 text-sm mb-6">
+                Vi har skickat en bekräftelselänk till din e-postadress. Klicka på länken för att aktivera ditt konto.
+              </p>
+              <Link
+                to="/login"
+                className="inline-block text-indigo-400 hover:text-indigo-300 text-sm transition"
+              >
+                Tillbaka till inloggning
+              </Link>
+            </>
+          )}
 
           {/* Laddning */}
           {status === 'loading' && (

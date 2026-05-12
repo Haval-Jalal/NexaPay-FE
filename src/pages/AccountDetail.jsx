@@ -31,7 +31,9 @@ export default function AccountDetail() {
   const [account, setAccount]         = useState(null)
   const [cards, setCards]             = useState([])
   const [transactions, setTransactions] = useState([])
-  const [pagination, setPagination]   = useState({ page: 1, totalPages: 1 })
+  const [pagination, setPagination]   = useState({ page: 1, totalPages: 1, totalCount: null })
+  const [txFilter, setTxFilter]       = useState('All')
+  const [copied, setCopied]           = useState(null)
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
 
@@ -48,6 +50,13 @@ export default function AccountDetail() {
 
   // Inline action errors
   const [actionError, setActionError] = useState('')
+
+  function copyToClipboard(text, label) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(label)
+      setTimeout(() => setCopied(null), 2000)
+    })
+  }
 
   async function loadAccount() {
     try {
@@ -69,7 +78,7 @@ export default function AccountDetail() {
     try {
       const res = await getTransactions(id, page)
       setTransactions(res.data.items ?? [])
-      setPagination({ page: res.data.page, totalPages: res.data.totalPages })
+      setPagination({ page: res.data.page, totalPages: res.data.totalPages, totalCount: res.data.totalCount ?? null })
     } catch { /* sekundär info */ }
   }
 
@@ -330,7 +339,9 @@ export default function AccountDetail() {
               <div key={card.id} className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-white font-mono text-sm">{card.maskedCardNumber}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">{card.cardHolderName} · {card.expiryDate}</p>
+                  <p className="text-gray-500 text-xs mt-0.5">
+                    {card.cardHolderName} · {card.expiryDate ? new Date(card.expiryDate).toLocaleDateString('sv-SE', { month: '2-digit', year: '2-digit' }) : '—'}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-xs font-medium ${CARD_STATUS_COLORS[card.status]}`}>
@@ -353,14 +364,35 @@ export default function AccountDetail() {
 
         {/* Transaktioner */}
         <div>
-          <h2 className="text-lg font-semibold text-white mb-3">Transaktioner</h2>
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <h2 className="text-lg font-semibold text-white">
+              Transaktioner
+              {pagination.totalCount != null && (
+                <span className="ml-2 text-xs font-normal text-gray-500">({pagination.totalCount} totalt)</span>
+              )}
+            </h2>
+            <div className="flex gap-1">
+              {['All', 'Deposit', 'Withdrawal', 'Transfer'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setTxFilter(f)}
+                  className={`text-xs px-3 py-1 rounded-lg transition ${txFilter === f ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+                >
+                  {{ All: 'Alla', Deposit: 'Insättning', Withdrawal: 'Uttag', Transfer: 'Överföring' }[f]}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {transactions.length === 0 && (
             <p className="text-gray-500 text-sm">Inga transaktioner ännu.</p>
           )}
+          {transactions.length > 0 && txFilter !== 'All' && transactions.filter(tx => tx.type === txFilter).length === 0 && (
+            <p className="text-gray-500 text-sm">Inga transaktioner av den typen på denna sida.</p>
+          )}
 
           <div className="space-y-2">
-            {transactions.map(tx => (
+            {(txFilter === 'All' ? transactions : transactions.filter(tx => tx.type === txFilter)).map(tx => (
               <div key={tx.id} className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-white text-sm">{tx.description || tx.type}</p>
@@ -428,13 +460,41 @@ export default function AccountDetail() {
           {newCard ? (
             <div className="space-y-4">
               <p className="text-green-400 text-sm">Kort skapat! Spara uppgifterna nu — de visas bara en gång.</p>
-              <div className="bg-gray-800 rounded-xl p-4 space-y-2 font-mono text-sm">
-                <p className="text-gray-400">Kortnummer</p>
-                <p className="text-white text-lg tracking-widest">{newCard.cardNumber}</p>
-                <p className="text-gray-400 mt-2">CVV</p>
-                <p className="text-white">{newCard.cvv}</p>
-                <p className="text-gray-400 mt-2">Utgångsdatum</p>
-                <p className="text-white">{newCard.card?.expiryDate}</p>
+              <div className="bg-gray-800 rounded-xl p-4 space-y-3 font-mono text-sm">
+                <div>
+                  <p className="text-gray-400 mb-1">Kortnummer</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-white text-lg tracking-widest">{newCard.cardNumber}</p>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(newCard.cardNumber, 'cardNumber')}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 transition shrink-0"
+                    >
+                      {copied === 'cardNumber' ? 'Kopierat!' : 'Kopiera'}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-gray-400 mb-1">CVV</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-white">{newCard.cvv}</p>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(newCard.cvv, 'cvv')}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 transition shrink-0"
+                    >
+                      {copied === 'cvv' ? 'Kopierat!' : 'Kopiera'}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-gray-400 mb-1">Utgångsdatum</p>
+                  <p className="text-white">
+                    {newCard.card?.expiryDate
+                      ? new Date(newCard.card.expiryDate).toLocaleDateString('sv-SE', { month: '2-digit', year: '2-digit' })
+                      : '—'}
+                  </p>
+                </div>
               </div>
               <button onClick={closeModal} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition">Stäng</button>
             </div>

@@ -19,6 +19,24 @@ import { register } from '../api/auth'
 // useAuth för att spara användaren i global context vid direkt inloggning
 import { useAuth } from '../context/AuthContext'
 
+const STRENGTH_LEVELS = [
+  { label: '',      bar: 'bg-gray-700', text: '' },
+  { label: 'Svag',  bar: 'bg-red-500',    text: 'text-red-400' },
+  { label: 'Medel', bar: 'bg-yellow-500', text: 'text-yellow-400' },
+  { label: 'Bra',   bar: 'bg-blue-500',   text: 'text-blue-400' },
+  { label: 'Stark', bar: 'bg-green-500',  text: 'text-green-400' },
+]
+
+function getPasswordStrength(pw) {
+  if (!pw) return 0
+  let s = 0
+  if (pw.length >= 8) s++
+  if (/[A-Z]/.test(pw)) s++
+  if (/[0-9]/.test(pw)) s++
+  if (/[^A-Za-z0-9]/.test(pw)) s++
+  return s
+}
+
 export default function Register() {
   // useNavigate – omdirigerar till /dashboard om direkt inloggning sker
   const navigate = useNavigate()
@@ -31,9 +49,6 @@ export default function Register() {
 
   // Felmeddelande – visas i rött (t.ex. lösenord matchar inte)
   const [error, setError] = useState('')
-
-  // Infomeddelande – visas i grönt när e-postbekräftelse krävs
-  const [info, setInfo] = useState('')
 
   // Laddningsstatus – inaktiverar formuläret under API-anropet
   const [loading, setLoading] = useState(false)
@@ -48,9 +63,7 @@ export default function Register() {
     // Förhindra sidladdning
     e.preventDefault()
 
-    // Rensa gamla meddelanden
     setError('')
-    setInfo('')
 
     // Validera att båda lösenordsfälten matchar innan API-anrop
     if (form.password !== form.confirm) {
@@ -65,10 +78,8 @@ export default function Register() {
       // Anropa register-endpointen
       const res = await register(form.email, form.password)
 
-      // Kontrollera om servern kräver e-postbekräftelse
       if (res.data?.requiresEmailConfirmation) {
-        // Visa informationsmeddelande – användaren kan inte logga in ännu
-        setInfo('Konto skapat! Kontrollera din e-post och bekräfta kontot innan du loggar in.')
+        navigate('/confirm-email')
         return
       }
 
@@ -103,13 +114,6 @@ export default function Register() {
             </p>
           )}
 
-          {/* Infomeddelande i grönt – visas när e-postbekräftelse krävs */}
-          {info && (
-            <p className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-4 py-2.5">
-              {info}
-            </p>
-          )}
-
           {/* E-postfält */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">E-post</label>
@@ -119,13 +123,13 @@ export default function Register() {
               value={form.email}
               onChange={handleChange}
               required
-              disabled={loading || !!info}          // Inaktivera om info visas (konto skapat)
+              disabled={loading}
               placeholder="du@exempel.se"
               className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition disabled:opacity-50"
             />
           </div>
 
-          {/* Lösenordsfält med kravtext */}
+          {/* Lösenordsfält med styrkeindikator */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Lösenord</label>
             <input
@@ -134,14 +138,26 @@ export default function Register() {
               value={form.password}
               onChange={handleChange}
               required
-              disabled={loading || !!info}
+              disabled={loading}
               placeholder="••••••••"
               className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition disabled:opacity-50"
             />
-            {/* Lösenordskrav från backenden */}
-            <p className="text-xs text-gray-500 mt-1">
-              Min 8 tecken, stor bokstav, siffra och specialtecken.
-            </p>
+            {form.password ? (() => {
+              const lvl = getPasswordStrength(form.password)
+              const s   = STRENGTH_LEVELS[lvl]
+              return (
+                <div className="mt-1.5 space-y-1">
+                  <div className="flex gap-1">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= lvl ? s.bar : 'bg-gray-700'}`} />
+                    ))}
+                  </div>
+                  <p className={`text-xs ${s.text}`}>{s.label}</p>
+                </div>
+              )
+            })() : (
+              <p className="text-xs text-gray-500 mt-1">Min 8 tecken, stor bokstav, siffra och specialtecken.</p>
+            )}
           </div>
 
           {/* Bekräftelsefält för lösenord */}
@@ -153,32 +169,19 @@ export default function Register() {
               value={form.confirm}
               onChange={handleChange}
               required
-              disabled={loading || !!info}
+              disabled={loading}
               placeholder="••••••••"
               className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition disabled:opacity-50"
             />
           </div>
 
-          {/* Skapa konto-knapp – visas bara om info-meddelande INTE visas */}
-          {!info && (
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Skapar konto...' : 'Skapa konto'}
-            </button>
-          )}
-
-          {/* Länk till inloggning – visas när e-postbekräftelse har skickats */}
-          {info && (
-            <Link
-              to="/login"
-              className="block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition"
-            >
-              Gå till inloggning
-            </Link>
-          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Skapar konto...' : 'Skapa konto'}
+          </button>
         </form>
 
         {/* Länk till inloggningssidan */}

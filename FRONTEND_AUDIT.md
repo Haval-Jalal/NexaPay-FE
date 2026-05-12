@@ -102,10 +102,22 @@
 - ✅ Admin-route rollskyddad: `AdminRoute` omdirigerar icke-admins till /dashboard
 - ✅ Idempotency-Key header på deposit, withdraw och transfer
 
-### Runda 4 – Finslipning (senaste)
+### Runda 4 – Finslipning
 - ✅ AuthContext: striktare null-check på `getMe`-svar (kräver email + role)
 - ✅ Admin.jsx: lösenordstips tillagd (min 8 tecken, stor bokstav, siffra, specialtecken)
 - ✅ Transfer lookup: skiljer på "konto hittades inte" (404) vs serverfel
+
+### Runda 5 – Slutaudit-åtgärder (senaste)
+- ✅ Register.jsx: automatisk omdirigering till `/confirm-email` efter registrering
+- ✅ ConfirmEmail.jsx: hanterar parameterless-läge med "kolla din e-post"-meddelande
+- ✅ Register.jsx, Settings.jsx: realtids lösenordsstyrkeindikator (4-segment, färgad)
+- ✅ AccountDetail.jsx (kortmodal): kopiera-till-urklipp för kortnummer och CVV
+- ✅ AccountDetail.jsx: `totalCount` visas i transaktionsrubriken
+- ✅ Admin.jsx: infobanner om att e-postbekräftelse kringgås vid adminskapad användare
+- ✅ Transfer.jsx: "Försök igen"-knapp vid serverfel i kontonummersökning
+- ✅ AccountDetail.jsx: typfilter för transaktionslistan (Alla/Insättning/Uttag/Överföring)
+- ✅ AccountDetail.jsx: `ExpiryDate` lokaliserad (`MM/YY`-format) i kortlista och kortmodal
+- ✅ Layout.jsx: blå "Skrivskyddad vy"-banner för Auditor-rollen i sidebaren
 
 ---
 
@@ -133,23 +145,23 @@
 
 ---
 
-## 7. Slutlig audit – observationer (inga ändringar gjorda)
+## 7. Slutlig audit – observationer (åtgärdade i Runda 5)
 
-Alla 23 endpoints är täckta. Inga saknade funktioner. Nedanstående är förbättringsförslag som identifierats men **inte åtgärdats**.
+Alla 23 endpoints är täckta. Nedanstående förbättringar identifierades i slutauditen och har nu genomförts.
 
-### Bristfälliga / delvis implementerade
+### Åtgärdade
 
-| # | Sida / Fil | Observation |
-|---|---|---|
-| 1 | `Register.jsx` | Ingen automatisk omdirigering till `/confirm-email` efter registrering — användaren måste navigera manuellt |
-| 2 | `Register.jsx`, `Settings.jsx` | Inget realtidsindikatorer för lösenordsstyrka (visar bara felmeddelande efter submit) |
-| 3 | `AccountDetail.jsx` (kortmodal) | Kortnummer och CVV visas men saknar kopiera-till-urklipp-knapp |
-| 4 | `AccountDetail.jsx` (transaktioner) | `totalCount` från backend visas inte — bara sidnummer och antal sidor |
-| 5 | `Admin.jsx` (skapa användare) | Ingen information om att personalskapat konto kringgår e-postbekräftelse (`EmailConfirmed = true` sätts automatiskt) |
-| 6 | `Transfer.jsx` | Vid serverfel (ej 404) kan användaren inte försöka igen utan att skriva om kontonumret — ingen retry-knapp |
-| 7 | `AccountDetail.jsx` | Transaktionslistan saknar filter på datum, typ eller belopp |
-| 8 | `AccountDetail.jsx` (kort) | `ExpiryDate` visas i råformat (`2028-03-31T00:00:00`) utan lokaliserad formatering |
-| 9 | Alla sidor | Auditor-rollen har inga distinkta "read-only"-indikatorer i gränssnittet utöver att knappar är dolda |
+| # | Sida / Fil | Observation | Åtgärd |
+|---|---|---|---|
+| 1 | `Register.jsx` | Ingen automatisk omdirigering till `/confirm-email` efter registrering | `navigate('/confirm-email')` vid `requiresEmailConfirmation`; `ConfirmEmail.jsx` visar "kolla din e-post" när userId/token saknas |
+| 2 | `Register.jsx`, `Settings.jsx` | Inget realtidsindikator för lösenordsstyrka | `getPasswordStrength()` + 4-segment färgbar styrkeindikator visas direkt vid inmatning |
+| 3 | `AccountDetail.jsx` (kortmodal) | Kortnummer och CVV saknade kopiera-till-urklipp-knapp | Kopiera-knapp med "Kopierat!"-feedback (2 sek) tillagd för både kortnummer och CVV |
+| 4 | `AccountDetail.jsx` (transaktioner) | `totalCount` från backend visades inte | `totalCount` sparas i pagination-state och visas i rubriken som "(X totalt)" |
+| 5 | `Admin.jsx` (skapa användare) | Ingen information om att e-postbekräftelse kringgås | Gul infobanner tillagd: "Konton skapade här bekräftas automatiskt — EmailConfirmed = true" |
+| 6 | `Transfer.jsx` | Ingen retry-knapp vid serverfel | "Försök igen"-knapp visas när `lookupState === 'error'`; anropar `doLookup()` direkt |
+| 7 | `AccountDetail.jsx` | Transaktionslistan saknade filter på typ | Filterknappar (Alla / Insättning / Uttag / Överföring) — klientsidefiltrering på nuvarande sida |
+| 8 | `AccountDetail.jsx` (kort) | `ExpiryDate` visades i råformat | `toLocaleDateString('sv-SE', { month: '2-digit', year: '2-digit' })` på både kortlista och kortmodal |
+| 9 | Layout (sidebar) | Auditor-rollen saknade "read-only"-indikator | Blå "Skrivskyddad vy / Auditor – enbart läsbehörighet"-banner i sidebaren för Auditor-rollen |
 
 ---
 

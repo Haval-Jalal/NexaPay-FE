@@ -5,8 +5,25 @@
 // Visar kontoinformation och formulär för att byta lösenord.
 // ============================================================
 
-// useState för formulärdata och status
 import { useState } from 'react'
+
+const STRENGTH_LEVELS = [
+  { label: '',      bar: 'bg-gray-700', text: '' },
+  { label: 'Svag',  bar: 'bg-red-500',    text: 'text-red-400' },
+  { label: 'Medel', bar: 'bg-yellow-500', text: 'text-yellow-400' },
+  { label: 'Bra',   bar: 'bg-blue-500',   text: 'text-blue-400' },
+  { label: 'Stark', bar: 'bg-green-500',  text: 'text-green-400' },
+]
+
+function getPasswordStrength(pw) {
+  if (!pw) return 0
+  let s = 0
+  if (pw.length >= 8) s++
+  if (/[A-Z]/.test(pw)) s++
+  if (/[0-9]/.test(pw)) s++
+  if (/[^A-Za-z0-9]/.test(pw)) s++
+  return s
+}
 
 // Layout-komponenten med sidebar
 import Layout from '../components/Layout'
@@ -118,7 +135,7 @@ export default function Settings() {
               />
             </div>
 
-            {/* Nytt lösenord */}
+            {/* Nytt lösenord med styrkeindikator */}
             <div>
               <label className="block text-sm text-gray-400 mb-1">Nytt lösenord</label>
               <input
@@ -130,6 +147,20 @@ export default function Settings() {
                 placeholder="••••••••"
                 className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition"
               />
+              {form.newPassword ? (() => {
+                const lvl = getPasswordStrength(form.newPassword)
+                const s   = STRENGTH_LEVELS[lvl]
+                return (
+                  <div className="mt-1.5 space-y-1">
+                    <div className="flex gap-1">
+                      {[1,2,3,4].map(i => (
+                        <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= lvl ? s.bar : 'bg-gray-700'}`} />
+                      ))}
+                    </div>
+                    <p className={`text-xs ${s.text}`}>{s.label}</p>
+                  </div>
+                )
+              })() : null}
             </div>
 
             {/* Bekräfta nytt lösenord */}
