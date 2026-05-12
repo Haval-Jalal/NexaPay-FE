@@ -130,3 +130,119 @@
 | `src/components/ConfirmModal.jsx` | Ersätter webbläsarens `confirm()` |
 | `NexaPay.Application/.../LookupAccountByNumberQuery.cs` | Query för kontonummer-sökning |
 | `NexaPay.Application/.../LookupAccountByNumberHandler.cs` | Handler för kontonummer-sökning |
+
+---
+
+## 7. Slutlig audit – observationer (inga ändringar gjorda)
+
+Alla 23 endpoints är täckta. Inga saknade funktioner. Nedanstående är förbättringsförslag som identifierats men **inte åtgärdats**.
+
+### Bristfälliga / delvis implementerade
+
+| # | Sida / Fil | Observation |
+|---|---|---|
+| 1 | `Register.jsx` | Ingen automatisk omdirigering till `/confirm-email` efter registrering — användaren måste navigera manuellt |
+| 2 | `Register.jsx`, `Settings.jsx` | Inget realtidsindikatorer för lösenordsstyrka (visar bara felmeddelande efter submit) |
+| 3 | `AccountDetail.jsx` (kortmodal) | Kortnummer och CVV visas men saknar kopiera-till-urklipp-knapp |
+| 4 | `AccountDetail.jsx` (transaktioner) | `totalCount` från backend visas inte — bara sidnummer och antal sidor |
+| 5 | `Admin.jsx` (skapa användare) | Ingen information om att personalskapat konto kringgår e-postbekräftelse (`EmailConfirmed = true` sätts automatiskt) |
+| 6 | `Transfer.jsx` | Vid serverfel (ej 404) kan användaren inte försöka igen utan att skriva om kontonumret — ingen retry-knapp |
+| 7 | `AccountDetail.jsx` | Transaktionslistan saknar filter på datum, typ eller belopp |
+| 8 | `AccountDetail.jsx` (kort) | `ExpiryDate` visas i råformat (`2028-03-31T00:00:00`) utan lokaliserad formatering |
+| 9 | Alla sidor | Auditor-rollen har inga distinkta "read-only"-indikatorer i gränssnittet utöver att knappar är dolda |
+
+---
+
+## 8. Senior frontend-granskning – designbedömning
+
+> Skriven ur perspektivet av en senior frontend-utvecklare med erfarenhet av finansiella produkter.
+> Syftet är att peka på vad som skiljer en fungerande intern prototyp från en produkt man kan visa upp.
+> **Ingen av punkterna nedan kräver backend-ändringar.**
+
+---
+
+### Sammanfattning
+
+Fundamenten är solida. Clean Architecture lyser igenom ända upp till React-lagret — CQRS-querys speglas i API-moduler, rollstyrningen är centraliserad, idempotency-nycklar sitter på plats. Det är mer disciplin än de flesta bankappar jag sett i tidiga stadier. Men just nu är det en **korrekt app** snarare än en **upplevd bankapp**. Gapet mellan de två är nästan uteslutande visuellt och interaktionsmässigt — inte arkitekturellt.
+
+---
+
+### Kritiska förbättringar (påverkar trovärdigheten mest)
+
+**1. Ikonerna i sidonavigationen är Unicode-tecken**
+`▦ ⇄ ⚙ 🛡` renderas olika på Windows, macOS och Android. De saknar hover-state, konsekvent storlek och kan inte stylas med CSS. Byt till ett SVG-ikonbibliotek — Lucide React (`lucide-react`) är lätt, träd-skakas och passar Tailwind perfekt. Skillnaden i upplevd kvalitet är omedelbar.
+
+**2. Kontostatus visas på engelska**
+`Open`, `Frozen`, `Closed`, `Active`, `Inactive`, `Blocked`, `Expired` är backend-enumvärden som läckt rakt ut i UI:t. `TYPE_LABELS`-kartan finns redan för kontotyper — samma mönster behövs för statusar. En bank som visar "Blocked" i ett i övrigt helt svenskt gränssnitt ser halvfärdig ut.
+
+**3. Kortvisning saknar kortdesign**
+Korten listas som plain textrader. I alla seriösa bankgränssnitt visas kort som ett visuellt kort — gradient, maskerat nummer, kortinnehavare, utgångsdatum. Det tar ungefär 40 rader Tailwind-CSS. Ingenting kommunicerar "vi är en bank" lika omedelbart som ett väldesignat kortelement.
+
+**4. Transaktioner saknar gruppering och ikoner**
+Alla transaktioner ser identiska ut. En `+2 400 kr` insättning och en `-14 500 kr` hyresbetalning har exakt samma visuella vikt. Lösning: gruppera per datum ("Idag", "Igår", "8 maj"), lägg till riktningsikoner (pil ned = insättning, pil upp = uttag, dubbelpil = överföring). Det ger omedelbar visuell skanning.
+
+**5. Inga toast-notifikationer**
+Lyckade åtgärder (överföring genomförd, lösenord bytt) visas som inline-text i formuläret — lätt att missa, och försvinner om sidan navigeras bort. En global toast-komponent som glider in från hörnet och försvinner efter 4 sekunder är standardmönstret i finansiella produkter. `react-hot-toast` eller en enkel custom hook räcker.
+
+---
+
+### Viktiga förbättringar (UX-poäng)
+
+**6. Ingen mobillayout**
+Sidebaren är `w-56` utan responsiv kollaps. Under ~700px bredd är appen oanvändbar. En bank-app måste fungera på mobil — antingen ett hamburgermeny-mönster eller en bottom navigation bar. Tailwind gör detta med `md:flex hidden` på sidebaren och en `fixed bottom-0` nav för mobil.
+
+**7. Inga sidövergångar**
+Navigation är ögonblicklig och abrupt. Subtila `opacity`- eller `translateY`-animationer vid sidbyten (100ms ease-out) gör hela appen kännas mer genomarbetad utan att störa. React Router v6 + Tailwind CSS `transition`-klasser räcker.
+
+**8. Auth-sidorna delar duplicerad layout**
+`Login.jsx`, `Register.jsx`, `ForgotPassword.jsx`, `ResetPassword.jsx`, `ConfirmEmail.jsx` har alla identisk boilerplate: `min-h-screen bg-gray-950 flex items-center justify-center px-4`. En `AuthLayout`-komponent eliminerar dupliceringen och gör det enkelt att t.ex. lägga till en logotypbild konsekvent på alla auth-sidor.
+
+**9. `autocomplete`-attribut saknas på formulär**
+Lösenordsfälten har `type="password"` men inte `autoComplete="current-password"` / `autoComplete="new-password"`. Lösenordshanterare och webbläsarens autofyll fungerar sämre utan dessa. E-postfält bör ha `autoComplete="email"`. Det är en tillgänglighets- och säkerhetsfråga, inte bara UX.
+
+**10. Tomt tillstånd utan visuell feedback**
+"Inga konton ännu." är en textrad i grått. En subtil illustration eller ikon (tom plånbok, ett "+"-kort) kommunicerar tillståndet tydligare och ger ett naturligt CTA-utrymme för "Skapa ditt första konto"-knappen.
+
+---
+
+### Finslipning (proffsiga detaljer)
+
+**11. Login.jsx och Settings.jsx har pedagogiska kommentarer**
+Varje trivial kodrad förklaras: `// Förhindra att webbläsaren laddar om sidan`. Det är kommentarer för en nybörjare som lär sig React, inte produktionskod. I en riktig kodbas kommunicerar det att koden inte är redo. Ta bort alla kommentarer som förklarar VAD koden gör — lämna bara de som förklarar VARFÖR något icke-uppenbart val gjordes.
+
+**12. ExpiryDate visas som ISO-sträng**
+`2028-03-31T00:00:00` ska vara `03/28`. En rad: `new Date(card.expiryDate).toLocaleDateString('sv-SE', { month: '2-digit', year: '2-digit' })`.
+
+**13. Sidtiteln uppdateras aldrig**
+Webbläsarfliken visar alltid "NexaPay". En `useEffect(() => { document.title = \`${pageName} – NexaPay\` }, [])` per sida är en liten detalj som märks av användare som har många flikar öppna.
+
+**14. Logout-knappen har ingen laddningsstatus**
+`handleLogout` är async men knappen ger ingen feedback under anropet. Om API:et är långsamt kan användaren klicka flera gånger. Samma `disabled={loading}`-mönster som används på alla andra knappar.
+
+**15. Kontokortet på Dashboard visar inte kontotyp med visuell distinktion**
+`Lönekonto`, `Sparkonto`, `ISK` visas som en liten grå text längst ner. En subtil vänsterkantfärg (grön för lönekonto, blå för sparkonto, lila för ISK) skulle göra det omedelbart skanbart utan att ändra layouten.
+
+---
+
+### Vad som redan är bra (behåll)
+
+- Skeleton-loaders på Dashboard och AccountDetail — professionellt
+- `ConfirmModal` istället för `window.confirm()` — korrekt
+- Konsekvent fel/lyckad-banner-mönster (`bg-*/10 border border-*/20`) — känslan är enhetlig
+- Rollstyrning centraliserad i `utils/roles.js` — underhållbart
+- Idempotency-nycklar på finansiella operationer — säkerhetsmedvetet
+- Debounce på kontonummersökning — visar förståelse för UX-kostnad av API-anrop
+- `getMe()` vid app-start — korrekt server-side state sync
+
+---
+
+### Prioritetsordning om man bara ska göra ett par saker
+
+| Prio | Åtgärd | Tid | Effekt |
+|---|---|---|---|
+| 1 | Byt Unicode-ikoner → Lucide React | 1–2h | Omedelbar kvalitetshöjning |
+| 2 | Översätt statusetiketter till svenska | 30min | Konsekvens i hela appen |
+| 3 | Visuell kortdesign i AccountDetail | 2–3h | Starkaste "det här är en bank"-signalen |
+| 4 | Toast-notifikationer | 1–2h | Rätt feedback-mönster för finansiella åtgärder |
+| 5 | Transaktionsgruppering + ikoner | 2h | Gör den mest använda vyn mycket mer läsbar |
+| 6 | Ta bort pedagogiska kommentarer | 30min | Kodens trovärdighet i en code review |
