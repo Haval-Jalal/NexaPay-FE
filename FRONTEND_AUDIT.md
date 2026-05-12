@@ -273,3 +273,213 @@ Alla pedagogiska rad-för-rad-kommentarer borttagna från `Login.jsx`, `Register
 | 4 | Toast-notifikationer | ✅ Klar (Runda 6) |
 | 5 | Transaktionsgruppering + ikoner | ✅ Klar (Runda 6) |
 | 6 | Ta bort pedagogiska kommentarer | ✅ Klar (Runda 6) |
+
+---
+
+## 9. Fullstack-audit – Backend & Frontend genomgång
+
+> Genomförd 2026-05-12. Läge: **enbart kontroll, inga kodändringar**.
+> Syfte: verifiera att alla kopplingar, endpoints, DTO-kontrakt, databasmodell, NuGet-paket och hela frontend↔backend-flödet stämmer.
+> Backend-sökväg: `C:\Users\haval\Desktop\NexaPay`
+
+---
+
+### 9.1 Verifierade kopplingar (inga fel hittades)
+
+#### Endpoints – alla 23 st matchar
+
+| Grupp | Verifierat |
+|---|---|
+| `POST/GET /api/auth/*` (8 endpoints) | ✅ Sökväg, HTTP-verb, auth-krav, request/response-format |
+| `GET/POST/PUT/DELETE /api/accounts/*` (7 endpoints) | ✅ |
+| `GET/POST /api/transactions/*` (4 endpoints) | ✅ |
+| `GET/POST/PUT /api/cards/*` (5 endpoints) | ✅ |
+| `GET/POST/DELETE /api/admin/users` (3 endpoints) | ✅ |
+
+#### DTO-fält – backend vs frontend
+
+| DTO | Fält | Status |
+|---|---|---|
+| `AccountDto` | id, accountNumber, accountName, balance (decimal), currency (string), accountType (string), status (string), createdAt, ownerId | ✅ Alla fält används korrekt i Dashboard.jsx och AccountDetail.jsx |
+| `CardDto` | id, maskedCardNumber (`"**** **** **** XXXX"`), cardType, status, expiryDate, createdAt | ✅ Matchar AccountDetail.jsx |
+| `CreateCardResponse` | card (CardDto), cardNumber (plain), cvv | ✅ Frontend läser `res.data.cardNumber`, `res.data.cvv`, `res.data.card?.expiryDate` |
+| `TransactionDto` | id, amount, currency, type (string), description, balanceAfterTransaction, receiverAccountId, accountId, createdAt | ✅ Alla fält används i AccountDetail.jsx |
+| `PagedResult<T>` | items, totalCount, page, pageSize, totalPages | ✅ Frontend läser `res.data.items`, `res.data.totalCount`, `res.data.totalPages` |
+| Admin användarlista | id, email, role, emailConfirmed, lockoutEnd | ✅ Matchar Admin.jsx |
+
+#### Övriga verifierade punkter
+
+| Punkt | Status |
+|---|---|
+| Backendport HTTP 5190 matchar `VITE_API_URL ?? 'http://localhost:5190'` | ✅ |
+| `JsonStringEnumConverter` global → `"Deposit"/"Withdrawal"/"Transfer"`, `"Open"/"Frozen"/"Closed"` etc. | ✅ Matchar frontend-strängjämförelser |
+| CORS: `localhost:5173` och `localhost:5174` konfigurerade för development | ✅ |
+| JWT HS256, 24h utgångstid, token-denylist (Redis/InMemory) | ✅ |
+| Rollnamn: Admin, BankManager, Teller, Auditor, User | ✅ Matchar `src/utils/roles.js` `can.*`-funktioner |
+| Idempotency-Key header på `/deposit`, `/withdraw`, `/transfer` | ✅ `src/api/transactions.js` skickar `crypto.randomUUID()` |
+| AutoMapper: Money VO (Amount + Currency) plattas ut till `balance`/`currency` i DTO | ✅ Frontend ser aldrig VO-strukturen |
+| `maskedCardNumber`-format: `"**** **** **** XXXX"` | ✅ Visas direkt i kortlistan |
+| `ExpiryDate` som ISO-sträng → `formatExpiry()` i AccountDetail.jsx | ✅ |
+| EF Core 8 + SQL Server – 11 migrationer, alla körs | ✅ |
+
+---
+
+### 9.2 NuGet-paket status
+
+#### NexaPay.API
+| Paket | Version | Status |
+|---|---|---|
+| Microsoft.AspNetCore (inbyggt) | .NET 8 | ✅ |
+| Microsoft.AspNetCore.Authentication.JwtBearer | 8.x | ✅ |
+| Swashbuckle.AspNetCore | – | ✅ |
+| Microsoft.AspNetCore.RateLimiting | 8.x | ✅ |
+| StackExchange.Redis | – | ✅ |
+
+#### NexaPay.Application
+| Paket | Version | Status |
+|---|---|---|
+| MediatR | **14.1.0** | ✅ |
+| AutoMapper | – | ✅ |
+| FluentValidation | – | ✅ |
+
+#### NexaPay.Domain
+| Paket | Version | Status |
+|---|---|---|
+| MediatR | **12.4.0** | ❌ Versionsmismatch – se #1 nedan |
+
+#### NexaPay.Infrastructure
+| Paket | Version | Status |
+|---|---|---|
+| Microsoft.EntityFrameworkCore.SqlServer | 8.x | ✅ |
+| Microsoft.AspNetCore.Identity.EntityFrameworkCore | 8.x | ✅ |
+| Microsoft.IdentityModel.Tokens | – | ✅ |
+| StackExchange.Redis | – | ✅ |
+
+---
+
+### 9.3 Identifierade problem
+
+Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
+
+---
+
+**#1 🔴 KRITISK – MediatR-versionsmismatch (Domain vs Application)**
+
+| Fält | Värde |
+|---|---|
+| Fil | `NexaPay.Domain/NexaPay.Domain.csproj` (ca rad 10) |
+| Problem | Domain-projektet refererar MediatR **12.4.0**; Application-projektet refererar **14.1.0**. Olika major-versioner kan ge `TypeLoadException` eller tyst beteendediskrepans vid körning om INotification/IRequest-interface inte stämmer överens. |
+| Rekommendation | Uppdatera Domain.csproj till MediatR **14.1.0** (samma som Application). Kör `dotnet restore` + `dotnet build` för att verifiera. |
+
+---
+
+**#2 🔴 KRITISK – `Transfer.jsx`: `setSuccess` anropas men state är inte deklarerat**
+
+| Fält | Värde |
+|---|---|
+| Fil | `src/pages/Transfer.jsx`, rad 51 |
+| Problem | `handleToNumberChange()` anropar `setSuccess('')` men `const [success, setSuccess]` togs bort i Runda 6 när toast-systemet introducerades. Anropet finns kvar → `ReferenceError: setSuccess is not defined` kastas varje gång användaren skriver i "Till kontonummer"-fältet. |
+| Rekommendation | Ta bort rad 51 (`setSuccess('')`) från `Transfer.jsx`. |
+
+---
+
+**#3 🟡 VIKTIG – SMTP inte konfigurerat (e-postbekräftelse & lösenordsåterställning fungerar inte)**
+
+| Fält | Värde |
+|---|---|
+| Fil | `NexaPay.API/appsettings.json` (`Email`-sektion) |
+| Problem | `Host`, `Username`, `Password` är tomma strängar. `IEmailNotificationService` faller tillbaka till `LoggingNotificationService` som bara skriver till konsolen. Användare som registrerar sig via `/register` i frontend kan aldrig bekräfta e-posten – och `/forgot-password` skickar aldrig återställningslänken. |
+| Påverkan | Hela e-postflödet är brutet i en verklig miljö. |
+| Rekommendation | Fyll i SMTP-uppgifter (t.ex. SendGrid, Mailgun) i `appsettings.Production.json`. Registrera aldrig credentials i `appsettings.json` – använd User Secrets i utveckling och miljövariabler i produktion. |
+
+---
+
+**#4 🟡 VIKTIG – CORS saknas för produktion**
+
+| Fält | Värde |
+|---|---|
+| Fil | `NexaPay.API/appsettings.json` eller `Program.cs` (`AllowedOrigins` för `production`-policy) |
+| Problem | CORS-policyn för `production` är en tom array. Alla webbläsarförfrågningar från den faktiska domänen blockeras. |
+| Rekommendation | Lägg till produktionsdomänen i `AllowedOrigins` innan deploy, t.ex. `"https://app.nexapay.com"`. |
+
+---
+
+**#5 🟡 VIKTIG – Ingen `.env`-fil i frontend (ingen produktionsmiljöhantering)**
+
+| Fält | Värde |
+|---|---|
+| Fil | `src/api/client.js` rad 10 |
+| Problem | `VITE_API_URL ?? 'http://localhost:5190'` – om ingen miljövariabel är satt används alltid localhost. Det finns ingen `.env`, `.env.development` eller `.env.production` i projektroten. |
+| Rekommendation | Skapa `.env.development` med `VITE_API_URL=http://localhost:5190` och `.env.production` med produktions-API:ets URL. Lägg till `.env*.local` i `.gitignore`. |
+
+---
+
+**#6 🟡 VIKTIG – HTTP 429 (rate limiting) hanteras inte meningsfullt i frontend**
+
+| Fält | Värde |
+|---|---|
+| Fil | `src/api/client.js` rad 34 |
+| Problem | `throw new Error(data?.message ?? \`Serverfel (\${res.status})\`)` – vid 429 visas "Serverfel (429)" eller backendets råa tekniska meddelande. Ingen retry-after-logik. |
+| Rekommendation | Lägg till en `if (res.status === 429)` gren i `client.js` som kastar `"För många förfrågningar – vänta en stund och försök igen."`. |
+
+---
+
+**#7 🟡 VIKTIG – Transfer.jsx: 404-detektering är skör (string-matching på felmeddelande)**
+
+| Fält | Värde |
+|---|---|
+| Fil | `src/pages/Transfer.jsx` rad 42 |
+| Problem | `e.message?.includes('404') \|\| e.message?.toLowerCase().includes('hittades inte')` – logiken förlitar sig på att felmeddelandet innehåller "404" eller en viss sträng. Om backend ändrar sitt felmeddelande, eller om 404 triggas av en annan orsak, kan fel visas felaktigt. |
+| Rekommendation | Exponera HTTP-statuskoden i `client.js`-felet (t.ex. `const err = new Error(...); err.status = res.status; throw err`) och kontrollera `e.status === 404` istället för strängmatchning. |
+
+---
+
+**#8 🟡 VIKTIG – Användare antas ha exakt en roll (`FirstOrDefault` i JWT-genereringen)**
+
+| Fält | Värde |
+|---|---|
+| Fil | `NexaPay.Infrastructure/Services/AuthService.cs` |
+| Problem | `GetRole()` använder `FirstOrDefault()` vid JWT-claim-skapandet. Om en användare råkar ha flera Identity-roller returneras bara den första. Frontend förutsätter också ett enda roll-värde (`user.role`). |
+| Påverkan | Låg just nu (inga användare har flera roller), men designbegränsning att känna till. |
+| Rekommendation | Dokumentera detta som en avsiktlig begränsning eller lägg till en assertion att en användare aldrig tilldelas mer än en roll. |
+
+---
+
+**#9 🟠 MINDRE – Dubbel `NameIdentifier`-claim i JWT**
+
+| Fält | Värde |
+|---|---|
+| Fil | `NexaPay.Infrastructure/Services/AuthService.cs` (JWT-generering) |
+| Problem | Både `sub` (JwtRegisteredClaimNames.Sub) och `ClaimTypes.NameIdentifier` innehåller användar-ID. ASP.NET Core mappar automatiskt `sub` till `NameIdentifier`, vilket gör att ID:t dupliceras i token-payloaden. |
+| Rekommendation | Ta bort den explicita `ClaimTypes.NameIdentifier`-clamen och förlita dig på `sub`-mappningen. |
+
+---
+
+**#10 🟠 MINDRE – Swagger visar JWT-lås på ej skyddade endpoints**
+
+| Fält | Värde |
+|---|---|
+| Fil | `NexaPay.API/Program.cs` eller Swagger-konfiguration |
+| Problem | Swagger-UI visar JWT-autentiseringsikonen (🔒) även på publika endpoints som `/api/auth/login`, `/api/auth/register` och `/health`. Vilseledande för utvecklare. |
+| Rekommendation | Applicera `[AllowAnonymous]` explicit på auth-controllers och använd `[ProducesResponseType]`-attribut för att Swagger ska reflektera rätt. Alternativt, konfigurera Swagger att bara visa lås på `[Authorize]`-markerade endpoints. |
+
+---
+
+### 9.4 Sammanfattning
+
+| Allvarlighet | Antal | Åtgärdsstatus |
+|---|---|---|
+| 🔴 Kritisk | 2 | Ej åtgärdade |
+| 🟡 Viktig | 6 | Ej åtgärdade |
+| 🟠 Mindre | 2 | Ej åtgärdade |
+| ✅ Verifierat korrekt | 23 endpoints + alla DTO-kontrakt | — |
+
+**Rekommenderad åtgärdsordning:**
+1. `Transfer.jsx` rad 51 – `setSuccess` ReferenceError (1-radsfix, frontend kraschbug)
+2. MediatR-versionsmismatch i Domain.csproj (1-radsfix, potentiell körtidskrasch)
+3. SMTP-konfiguration (krävs för att e-postflödet ska fungera)
+4. CORS-konfiguration för produktion (krävs inför deploy)
+5. `.env`-filer för frontend (krävs inför deploy)
+6. HTTP 429-hantering i `client.js`
+7. 404-detektering i `Transfer.jsx`
+8. Övriga lägre-prioritet
