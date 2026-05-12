@@ -398,8 +398,8 @@ export default function AccountDetail() {
               <input type="number" min="1" step="0.01" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Beskrivning (valfri)</label>
-              <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="T.ex. Lön" className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition" />
+              <label className="block text-sm text-gray-400 mb-1">Beskrivning</label>
+              <input required value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="T.ex. Lön" className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition" />
             </div>
             <button type="submit" disabled={submitting} className="w-full bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60">{submitting ? 'Genomför...' : 'Sätt in'}</button>
           </form>
@@ -415,8 +415,8 @@ export default function AccountDetail() {
               <input type="number" min="1" step="0.01" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Beskrivning (valfri)</label>
-              <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="T.ex. Hyra" className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition" />
+              <label className="block text-sm text-gray-400 mb-1">Beskrivning</label>
+              <input required value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="T.ex. Hyra" className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition" />
             </div>
             <button type="submit" disabled={submitting} className="w-full bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60">{submitting ? 'Genomför...' : 'Ta ut'}</button>
           </form>
