@@ -107,7 +107,22 @@
 - ✅ Admin.jsx: lösenordstips tillagd (min 8 tecken, stor bokstav, siffra, specialtecken)
 - ✅ Transfer lookup: skiljer på "konto hittades inte" (404) vs serverfel
 
-### Runda 5 – Slutaudit-åtgärder (senaste)
+### Runda 6 – Senior design-granskning (senaste)
+- ✅ lucide-react installerat; Unicode-ikoner i Layout ersatta med Lucide
+- ✅ Layout.jsx: responsiv sidebar med hamburgermeny på mobil + overlay
+- ✅ Layout.jsx: `loggingOut`-state på logout-knappen
+- ✅ index.css: `@keyframes fadeIn` + `.animate-fade-in` utility
+- ✅ App.jsx: `AnimatedRoutes` med `key={location.pathname}` för sidövergångar
+- ✅ AuthLayout.jsx: ny delad komponent för alla auth-sidor
+- ✅ Login/Register/ForgotPassword/ResetPassword/ConfirmEmail: refaktorerade till AuthLayout, `autoComplete`-attribut, inga pedagogiska kommentarer, `document.title`
+- ✅ Settings.jsx: toast ersätter inline success, `autoComplete`, rensade kommentarer, `document.title`
+- ✅ Transfer.jsx: toast ersätter inline success, `document.title`
+- ✅ Admin.jsx: toast ersätter inline success, `document.title`
+- ✅ Dashboard.jsx: svenska statusetiketter, färgad vänsterkantlinje per kontotyp, visuellt tomt tillstånd, `document.title`
+- ✅ AccountDetail.jsx: svenska status/kortstatus-etiketter, visuell kortdesign (gradient), transaktionsgruppering per datum med Lucide-ikoner, toast för insättning/uttag, `document.title`
+- ✅ ToastContext.jsx: global toast-hook, 4 sekunder, fade-in animation
+
+### Runda 5 – Slutaudit-åtgärder
 - ✅ Register.jsx: automatisk omdirigering till `/confirm-email` efter registrering
 - ✅ ConfirmEmail.jsx: hanterar parameterless-läge med "kolla din e-post"-meddelande
 - ✅ Register.jsx, Settings.jsx: realtids lösenordsstyrkeindikator (4-segment, färgad)
@@ -181,58 +196,58 @@ Fundamenten är solida. Clean Architecture lyser igenom ända upp till React-lag
 
 ### Kritiska förbättringar (påverkar trovärdigheten mest)
 
-**1. Ikonerna i sidonavigationen är Unicode-tecken**
-`▦ ⇄ ⚙ 🛡` renderas olika på Windows, macOS och Android. De saknar hover-state, konsekvent storlek och kan inte stylas med CSS. Byt till ett SVG-ikonbibliotek — Lucide React (`lucide-react`) är lätt, träd-skakas och passar Tailwind perfekt. Skillnaden i upplevd kvalitet är omedelbar.
+**1. ✅ Ikonerna i sidonavigationen är Unicode-tecken**
+`lucide-react` installerat. `LayoutDashboard`, `ArrowLeftRight`, `Cog`, `Shield`, `Menu`, `X` används i `Layout.jsx`. Konsekvent storlek, CSS-stylebar, träd-skakbar.
 
-**2. Kontostatus visas på engelska**
-`Open`, `Frozen`, `Closed`, `Active`, `Inactive`, `Blocked`, `Expired` är backend-enumvärden som läckt rakt ut i UI:t. `TYPE_LABELS`-kartan finns redan för kontotyper — samma mönster behövs för statusar. En bank som visar "Blocked" i ett i övrigt helt svenskt gränssnitt ser halvfärdig ut.
+**2. ✅ Kontostatus visas på engelska**
+`STATUS_LABELS` och `CARD_STATUS_LABELS` maps tillagda i `Dashboard.jsx` och `AccountDetail.jsx`. Alla statusetiketter visas nu på svenska (Öppen, Fryst, Stängd, Aktiv, Blockerad m.fl.).
 
-**3. Kortvisning saknar kortdesign**
-Korten listas som plain textrader. I alla seriösa bankgränssnitt visas kort som ett visuellt kort — gradient, maskerat nummer, kortinnehavare, utgångsdatum. Det tar ungefär 40 rader Tailwind-CSS. Ingenting kommunicerar "vi är en bank" lika omedelbart som ett väldesignat kortelement.
+**3. ✅ Kortvisning saknar kortdesign**
+Korten visas nu som visuella bankkort med indigo/lila gradient, dekorativa cirklar, maskerat kortnummer, innehavare och utgångsdatum i `AccountDetail.jsx`. Blockerade/utgångna kort får neutral grå bakgrund.
 
-**4. Transaktioner saknar gruppering och ikoner**
-Alla transaktioner ser identiska ut. En `+2 400 kr` insättning och en `-14 500 kr` hyresbetalning har exakt samma visuella vikt. Lösning: gruppera per datum ("Idag", "Igår", "8 maj"), lägg till riktningsikoner (pil ned = insättning, pil upp = uttag, dubbelpil = överföring). Det ger omedelbar visuell skanning.
+**4. ✅ Transaktioner saknar gruppering och ikoner**
+Transaktionslistan i `AccountDetail.jsx` grupperas nu per datum ("Idag", "Igår", datumstämpel). Varje transaktion har en färgad ikon-cirkel med `ArrowDownLeft`/`ArrowUpRight`/`ArrowLeftRight` från Lucide.
 
-**5. Inga toast-notifikationer**
-Lyckade åtgärder (överföring genomförd, lösenord bytt) visas som inline-text i formuläret — lätt att missa, och försvinner om sidan navigeras bort. En global toast-komponent som glider in från hörnet och försvinner efter 4 sekunder är standardmönstret i finansiella produkter. `react-hot-toast` eller en enkel custom hook räcker.
+**5. ✅ Inga toast-notifikationer**
+`ToastContext.jsx` skapad — global `useToast()` hook. Toasts används i `Settings.jsx` (lösenordsbyte), `Transfer.jsx` (överföring), `AccountDetail.jsx` (insättning/uttag), `Admin.jsx` (skapa användare). Inline success-state borttaget från dessa sidor.
 
 ---
 
 ### Viktiga förbättringar (UX-poäng)
 
-**6. Ingen mobillayout**
-Sidebaren är `w-56` utan responsiv kollaps. Under ~700px bredd är appen oanvändbar. En bank-app måste fungera på mobil — antingen ett hamburgermeny-mönster eller en bottom navigation bar. Tailwind gör detta med `md:flex hidden` på sidebaren och en `fixed bottom-0` nav för mobil.
+**6. ✅ Ingen mobillayout**
+`Layout.jsx` omskriven med responsiv sidebar: fast overlay med hamburgermeny på mobil (`md:hidden` top bar + `Menu`/`X`-ikoner), stationär sidebar på desktop. Overlay-backdrop stänger sidebaren vid klick.
 
-**7. Inga sidövergångar**
-Navigation är ögonblicklig och abrupt. Subtila `opacity`- eller `translateY`-animationer vid sidbyten (100ms ease-out) gör hela appen kännas mer genomarbetad utan att störa. React Router v6 + Tailwind CSS `transition`-klasser räcker.
+**7. ✅ Inga sidövergångar**
+`@keyframes fadeIn` tillagd i `index.css`. `animate-fade-in`-klass appliceras via `key={location.pathname}` på content-wrapper i `Layout.jsx` (interna sidor) och direkt på `AuthLayout`-wrapper (auth-sidor). `AnimatedRoutes`-komponent i `App.jsx` hanterar location-tracking.
 
-**8. Auth-sidorna delar duplicerad layout**
-`Login.jsx`, `Register.jsx`, `ForgotPassword.jsx`, `ResetPassword.jsx`, `ConfirmEmail.jsx` har alla identisk boilerplate: `min-h-screen bg-gray-950 flex items-center justify-center px-4`. En `AuthLayout`-komponent eliminerar dupliceringen och gör det enkelt att t.ex. lägga till en logotypbild konsekvent på alla auth-sidor.
+**8. ✅ Auth-sidorna delar duplicerad layout**
+`AuthLayout.jsx` skapad. Alla auth-sidor (`Login`, `Register`, `ForgotPassword`, `ResetPassword`, `ConfirmEmail`) använder nu komponenten — boilerplate eliminerad.
 
-**9. `autocomplete`-attribut saknas på formulär**
-Lösenordsfälten har `type="password"` men inte `autoComplete="current-password"` / `autoComplete="new-password"`. Lösenordshanterare och webbläsarens autofyll fungerar sämre utan dessa. E-postfält bör ha `autoComplete="email"`. Det är en tillgänglighets- och säkerhetsfråga, inte bara UX.
+**9. ✅ `autocomplete`-attribut saknas på formulär**
+`autoComplete="email"` på alla e-postfält, `autoComplete="current-password"` på befintliga lösenordsfält, `autoComplete="new-password"` på nya/bekräftade lösenordsfält. Tillagt i samtliga auth- och inställningssidor.
 
-**10. Tomt tillstånd utan visuell feedback**
-"Inga konton ännu." är en textrad i grått. En subtil illustration eller ikon (tom plånbok, ett "+"-kort) kommunicerar tillståndet tydligare och ger ett naturligt CTA-utrymme för "Skapa ditt första konto"-knappen.
+**10. ✅ Tomt tillstånd utan visuell feedback**
+`Dashboard.jsx`: tomt tillstånd visar nu en ikon-box + `text-gray-400`-rubrik + CTA-länk "Skapa ditt första konto →" för användare med skrivbehörighet.
 
 ---
 
 ### Finslipning (proffsiga detaljer)
 
-**11. Login.jsx och Settings.jsx har pedagogiska kommentarer**
-Varje trivial kodrad förklaras: `// Förhindra att webbläsaren laddar om sidan`. Det är kommentarer för en nybörjare som lär sig React, inte produktionskod. I en riktig kodbas kommunicerar det att koden inte är redo. Ta bort alla kommentarer som förklarar VAD koden gör — lämna bara de som förklarar VARFÖR något icke-uppenbart val gjordes.
+**11. ✅ Login.jsx och Settings.jsx har pedagogiska kommentarer**
+Alla pedagogiska rad-för-rad-kommentarer borttagna från `Login.jsx`, `Register.jsx`, `ForgotPassword.jsx`, `ResetPassword.jsx`, `ConfirmEmail.jsx` och `Settings.jsx`. Filerna omskrivna utan onödiga kommentarer.
 
-**12. ExpiryDate visas som ISO-sträng**
-`2028-03-31T00:00:00` ska vara `03/28`. En rad: `new Date(card.expiryDate).toLocaleDateString('sv-SE', { month: '2-digit', year: '2-digit' })`.
+**12. ✅ ExpiryDate visas som ISO-sträng**
+Åtgärdat i Runda 5. `formatExpiry()` helper i `AccountDetail.jsx` — används i kortlista och kortmodal.
 
-**13. Sidtiteln uppdateras aldrig**
-Webbläsarfliken visar alltid "NexaPay". En `useEffect(() => { document.title = \`${pageName} – NexaPay\` }, [])` per sida är en liten detalj som märks av användare som har många flikar öppna.
+**13. ✅ Sidtiteln uppdateras aldrig**
+`useEffect(() => { document.title = '... – NexaPay' }, [])` tillagd i alla sidor: Dashboard, AccountDetail, Transfer, Settings, Admin, Login, Register, ForgotPassword, ResetPassword, ConfirmEmail.
 
-**14. Logout-knappen har ingen laddningsstatus**
-`handleLogout` är async men knappen ger ingen feedback under anropet. Om API:et är långsamt kan användaren klicka flera gånger. Samma `disabled={loading}`-mönster som används på alla andra knappar.
+**14. ✅ Logout-knappen har ingen laddningsstatus**
+`loggingOut`-state tillagd i `Layout.jsx`. Knappen är `disabled` och visar "Loggar ut..." under API-anropet.
 
-**15. Kontokortet på Dashboard visar inte kontotyp med visuell distinktion**
-`Lönekonto`, `Sparkonto`, `ISK` visas som en liten grå text längst ner. En subtil vänsterkantfärg (grön för lönekonto, blå för sparkonto, lila för ISK) skulle göra det omedelbart skanbart utan att ändra layouten.
+**15. ✅ Kontokortet på Dashboard visar inte kontotyp med visuell distinktion**
+`TYPE_BAR`-map tillagd (`Checking → bg-green-500`, `Savings → bg-blue-500`, `ISK → bg-purple-500`). Absolut positionerad 4px vänsterkantlinje per kontotyp på varje kontokort i `Dashboard.jsx`.
 
 ---
 
@@ -250,11 +265,11 @@ Webbläsarfliken visar alltid "NexaPay". En `useEffect(() => { document.title = 
 
 ### Prioritetsordning om man bara ska göra ett par saker
 
-| Prio | Åtgärd | Tid | Effekt |
-|---|---|---|---|
-| 1 | Byt Unicode-ikoner → Lucide React | 1–2h | Omedelbar kvalitetshöjning |
-| 2 | Översätt statusetiketter till svenska | 30min | Konsekvens i hela appen |
-| 3 | Visuell kortdesign i AccountDetail | 2–3h | Starkaste "det här är en bank"-signalen |
-| 4 | Toast-notifikationer | 1–2h | Rätt feedback-mönster för finansiella åtgärder |
-| 5 | Transaktionsgruppering + ikoner | 2h | Gör den mest använda vyn mycket mer läsbar |
-| 6 | Ta bort pedagogiska kommentarer | 30min | Kodens trovärdighet i en code review |
+| Prio | Åtgärd | Status |
+|---|---|---|
+| 1 | Byt Unicode-ikoner → Lucide React | ✅ Klar (Runda 6) |
+| 2 | Översätt statusetiketter till svenska | ✅ Klar (Runda 6) |
+| 3 | Visuell kortdesign i AccountDetail | ✅ Klar (Runda 6) |
+| 4 | Toast-notifikationer | ✅ Klar (Runda 6) |
+| 5 | Transaktionsgruppering + ikoner | ✅ Klar (Runda 6) |
+| 6 | Ta bort pedagogiska kommentarer | ✅ Klar (Runda 6) |

@@ -6,8 +6,10 @@ import { getAccounts, createAccount } from '../api/accounts'
 import { useAuth } from '../context/AuthContext'
 import { can } from '../utils/roles'
 
-const TYPE_LABELS = { Checking: 'Lönekonto', Savings: 'Sparkonto', ISK: 'ISK' }
+const TYPE_LABELS  = { Checking: 'Lönekonto', Savings: 'Sparkonto', ISK: 'ISK' }
+const STATUS_LABELS = { Open: 'Öppen', Frozen: 'Fryst', Closed: 'Stängd' }
 const STATUS_COLORS = { Open: 'text-green-400', Frozen: 'text-blue-400', Closed: 'text-red-400' }
+const TYPE_BAR      = { Checking: 'bg-green-500', Savings: 'bg-blue-500', ISK: 'bg-purple-500' }
 
 export default function Dashboard() {
   const navigate       = useNavigate()
@@ -37,6 +39,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => { loadAccounts() }, [])
+  useEffect(() => { document.title = 'Översikt – NexaPay' }, [])
 
   async function handleCreate(e) {
     e.preventDefault()
@@ -141,8 +144,9 @@ export default function Dashboard() {
               <button
                 key={account.id}
                 onClick={() => navigate(`/accounts/${account.id}`)}
-                className="text-left bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-indigo-500 transition"
+                className="relative text-left bg-gray-900 border border-gray-800 rounded-2xl p-5 pl-6 hover:border-gray-700 transition overflow-hidden"
               >
+                <div className={`absolute left-0 top-0 bottom-0 w-1 ${TYPE_BAR[account.accountType] ?? 'bg-indigo-500'} rounded-l-2xl`} />
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-semibold text-white">{account.accountName}</p>
@@ -154,7 +158,7 @@ export default function Dashboard() {
                     )}
                   </div>
                   <span className={`text-xs font-medium ${STATUS_COLORS[account.status] ?? 'text-gray-400'}`}>
-                    {account.status}
+                    {STATUS_LABELS[account.status] ?? account.status}
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-white">
@@ -169,11 +173,22 @@ export default function Dashboard() {
         )}
 
         {!loading && filtered.length === 0 && !error && (
-          <p className="text-gray-500 mt-8">
-            {search || statusFilter !== 'all'
-              ? 'Inga konton matchar sökningen.'
-              : 'Inga konton ännu. Skapa ditt första konto!'}
-          </p>
+          <div className="text-center py-16">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center text-2xl">
+              💳
+            </div>
+            <p className="text-gray-400 font-medium mb-1">
+              {search || statusFilter !== 'all' ? 'Inga konton matchar sökningen.' : 'Inga konton ännu.'}
+            </p>
+            {!search && statusFilter === 'all' && can.write(role) && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="mt-3 text-indigo-400 hover:text-indigo-300 text-sm transition"
+              >
+                Skapa ditt första konto →
+              </button>
+            )}
+          </div>
         )}
       </div>
 

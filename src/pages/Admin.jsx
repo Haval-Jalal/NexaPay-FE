@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import { adminCreateUser, listUsers, deleteUser } from '../api/admin'
+import { useToast } from '../context/ToastContext'
 
 const ROLES = ['User', 'Teller', 'Auditor', 'BankManager', 'Admin']
 
 export default function Admin() {
+  const toast = useToast()
   const [form, setForm]           = useState({ email: '', password: '', role: 'User' })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
-  const [formSuccess, setFormSuccess] = useState('')
 
   const [users, setUsers]         = useState([])
   const [loadingUsers, setLoadingUsers] = useState(true)
@@ -31,14 +32,15 @@ export default function Admin() {
 
   useEffect(() => { loadUsers() }, [])
 
+  useEffect(() => { document.title = 'Admin – NexaPay' }, [])
+
   async function handleCreate(e) {
     e.preventDefault()
     setFormError('')
-    setFormSuccess('')
     setSubmitting(true)
     try {
       await adminCreateUser(form.email, form.password, form.role)
-      setFormSuccess(`Användare "${form.email}" skapades med rollen ${form.role}.`)
+      toast(`Användare "${form.email}" skapades med rollen ${form.role}.`)
       setForm({ email: '', password: '', role: 'User' })
       loadUsers()
     } catch (e) {
@@ -87,11 +89,6 @@ export default function Admin() {
             {formError && (
               <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2">
                 {formError}
-              </p>
-            )}
-            {formSuccess && (
-              <p className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-4 py-2">
-                {formSuccess}
               </p>
             )}
             <div className="grid sm:grid-cols-3 gap-4">

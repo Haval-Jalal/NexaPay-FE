@@ -8,17 +8,46 @@ import { getAccount, freezeAccount, unfreezeAccount, deleteAccount } from '../ap
 import { getCardsByAccount, createCard, activateCard, blockCard, unblockCard } from '../api/cards'
 import { getTransactions, deposit, withdraw } from '../api/transactions'
 import { can } from '../utils/roles'
+import { useToast } from '../context/ToastContext'
+import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
 
+const STATUS_LABELS      = { Open: 'Öppen', Frozen: 'Fryst', Closed: 'Stängd' }
 const STATUS_COLORS      = { Open: 'text-green-400', Frozen: 'text-blue-400', Closed: 'text-red-400' }
-const CARD_STATUS_COLORS = { Active: 'text-green-400', Inactive: 'text-yellow-400', Blocked: 'text-red-400', Expired: 'text-gray-500' }
+const CARD_STATUS_LABELS = { Active: 'Aktiv', Inactive: 'Inaktiv', Blocked: 'Blockerad', Expired: 'Utgången' }
+const CARD_STATUS_COLORS = { Active: 'text-green-300', Inactive: 'text-yellow-300', Blocked: 'text-red-300', Expired: 'text-gray-400' }
 const TX_COLORS          = { Deposit: 'text-green-400', Withdrawal: 'text-red-400', Transfer: 'text-blue-400' }
-const TX_SIGNS           = { Deposit: '+', Withdrawal: '-', Transfer: '⇄' }
+const TX_ICONS           = { Deposit: ArrowDownLeft, Withdrawal: ArrowUpRight, Transfer: ArrowLeftRight }
+
+function groupByDate(txList) {
+  const today     = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const groups = new Map()
+  txList.forEach(tx => {
+    const d = new Date(tx.createdAt)
+    let label
+    if (d.toDateString() === today.toDateString())          label = 'Idag'
+    else if (d.toDateString() === yesterday.toDateString()) label = 'Igår'
+    else label = d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' })
+    if (!groups.has(label)) groups.set(label, [])
+    groups.get(label).push(tx)
+  })
+  return Array.from(groups.entries())
+}
+
+function formatExpiry(date) {
+  if (!date) return '—'
+  return new Date(date).toLocaleDateString('sv-SE', { month: '2-digit', year: '2-digit' })
+}
 
 export default function AccountDetail() {
   const { id }       = useParams()
   const navigate     = useNavigate()
   const { user }     = useAuth()
   const role         = user?.role
+  const toast        = useToast()
+
+  useEffect(() => { document.title = 'Kontoöversikt – NexaPay' }, [])
 
   // Rollbehörigheter
   const isStaff      = can.isStaff(role)
@@ -107,6 +136,7 @@ export default function AccountDetail() {
     setFormError('')
     try {
       await deposit(id, parseFloat(form.amount), form.description)
+      toast('Insättning genomförd.')
       closeModal()
       loadAccount()
       loadTransactions()
@@ -123,6 +153,7 @@ export default function AccountDetail() {
     setFormError('')
     try {
       await withdraw(id, parseFloat(form.amount), form.description)
+      toast('Uttag genomfört.')
       closeModal()
       loadAccount()
       loadTransactions()
@@ -279,7 +310,7 @@ export default function AccountDetail() {
                 <p className="text-xs text-indigo-400 mt-1">Ägare-ID: {account.ownerId}</p>
               )}
               <p className={`text-sm mt-2 font-medium ${STATUS_COLORS[account.status]}`}>
-                {account.status}
+                {STATUS_LABELS[account.status] ?? account.status}
               </p>
             </div>
             <div className="text-right">
@@ -334,27 +365,49 @@ export default function AccountDetail() {
             <p className="text-gray-500 text-sm">Inga kort kopplade till detta konto.</p>
           )}
 
-          <div className="space-y-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             {cards.map(card => (
-              <div key={card.id} className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-white font-mono text-sm">{card.maskedCardNumber}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">
-                    {card.cardHolderName} · {card.expiryDate ? new Date(card.expiryDate).toLocaleDateString('sv-SE', { month: '2-digit', year: '2-digit' }) : '—'}
+              <div
+                key={card.id}
+                className={`relative rounded-2xl p-5 overflow-hidden
+                  ${card.status === 'Expired' || card.status === 'Blocked'
+                    ? 'bg-gray-800'
+                    : 'bg-gradient-to-br from-indigo-800 via-indigo-700 to-purple-800'}`}
+              >
+                <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/5" />
+                <div className="absolute -right-2 -bottom-6 w-20 h-20 rounded-full bg-white/5" />
+                <div className="relative">
+                  <div className="flex justify-between items-start mb-5">
+                    <p className="text-white/60 text-xs font-semibold tracking-widest">NEXAPAY</p>
+                    <span className={`text-xs font-semibold ${CARD_STATUS_COLORS[card.status]}`}>
+                      {CARD_STATUS_LABELS[card.status] ?? card.status}
+                    </span>
+                  </div>
+                  <p className="text-white font-mono text-base tracking-widest mb-5">
+                    {card.maskedCardNumber}
                   </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-medium ${CARD_STATUS_COLORS[card.status]}`}>
-                    {card.status}
-                  </span>
-                  {canWrite && card.status === 'Inactive' && (
-                    <button onClick={() => handleActivate(card.id)} className="text-xs text-green-400 hover:text-green-300 transition">Aktivera</button>
-                  )}
-                  {canBlock && card.status === 'Active' && (
-                    <button onClick={() => openModal('blockCard', card.id)} className="text-xs text-red-400 hover:text-red-300 transition">Blockera</button>
-                  )}
-                  {canBlock && card.status === 'Blocked' && (
-                    <button onClick={() => handleUnblock(card.id)} className="text-xs text-blue-400 hover:text-blue-300 transition">Avblockera</button>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-white/40 text-xs uppercase tracking-wide mb-0.5">Innehavare</p>
+                      <p className="text-white text-sm font-medium">{card.cardHolderName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white/40 text-xs uppercase tracking-wide mb-0.5">Utgår</p>
+                      <p className="text-white text-sm">{formatExpiry(card.expiryDate)}</p>
+                    </div>
+                  </div>
+                  {(canWrite || canBlock) && (
+                    <div className="flex gap-3 mt-4 pt-3 border-t border-white/10">
+                      {canWrite && card.status === 'Inactive' && (
+                        <button onClick={() => handleActivate(card.id)} className="text-xs text-green-300 hover:text-green-200 transition font-medium">Aktivera</button>
+                      )}
+                      {canBlock && card.status === 'Active' && (
+                        <button onClick={() => openModal('blockCard', card.id)} className="text-xs text-red-300 hover:text-red-200 transition font-medium">Blockera</button>
+                      )}
+                      {canBlock && card.status === 'Blocked' && (
+                        <button onClick={() => handleUnblock(card.id)} className="text-xs text-blue-300 hover:text-blue-200 transition font-medium">Avblockera</button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -387,28 +440,48 @@ export default function AccountDetail() {
           {transactions.length === 0 && (
             <p className="text-gray-500 text-sm">Inga transaktioner ännu.</p>
           )}
-          {transactions.length > 0 && txFilter !== 'All' && transactions.filter(tx => tx.type === txFilter).length === 0 && (
-            <p className="text-gray-500 text-sm">Inga transaktioner av den typen på denna sida.</p>
-          )}
 
-          <div className="space-y-2">
-            {(txFilter === 'All' ? transactions : transactions.filter(tx => tx.type === txFilter)).map(tx => (
-              <div key={tx.id} className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-white text-sm">{tx.description || tx.type}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">{new Date(tx.createdAt).toLocaleString('sv-SE')}</p>
-                </div>
-                <div className="text-right">
-                  <p className={`font-semibold ${TX_COLORS[tx.type]}`}>
-                    {TX_SIGNS[tx.type]}{tx.amount.toLocaleString('sv-SE', { style: 'currency', currency: tx.currency || 'SEK' })}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Saldo: {tx.balanceAfterTransaction.toLocaleString('sv-SE', { style: 'currency', currency: tx.currency || 'SEK' })}
-                  </p>
-                </div>
+          {(() => {
+            const filtered = txFilter === 'All' ? transactions : transactions.filter(tx => tx.type === txFilter)
+            if (transactions.length > 0 && filtered.length === 0) {
+              return <p className="text-gray-500 text-sm">Inga transaktioner av den typen på denna sida.</p>
+            }
+            return (
+              <div className="space-y-6">
+                {groupByDate(filtered).map(([date, txs]) => (
+                  <div key={date}>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">{date}</p>
+                    <div className="space-y-2">
+                      {txs.map(tx => {
+                        const Icon = TX_ICONS[tx.type]
+                        return (
+                          <div key={tx.id} className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center gap-3">
+                            <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                              tx.type === 'Deposit' ? 'bg-green-500/15' : tx.type === 'Withdrawal' ? 'bg-red-500/15' : 'bg-blue-500/15'
+                            }`}>
+                              {Icon && <Icon size={14} className={TX_COLORS[tx.type]} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-sm truncate">{tx.description || tx.type}</p>
+                              <p className="text-gray-500 text-xs mt-0.5">{new Date(tx.createdAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className={`font-semibold text-sm ${TX_COLORS[tx.type]}`}>
+                                {tx.type === 'Deposit' ? '+' : tx.type === 'Withdrawal' ? '−' : '⇄'}{tx.amount.toLocaleString('sv-SE', { style: 'currency', currency: tx.currency || 'SEK' })}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {tx.balanceAfterTransaction.toLocaleString('sv-SE', { style: 'currency', currency: tx.currency || 'SEK' })}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )
+          })()}
 
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-center gap-4 mt-4">

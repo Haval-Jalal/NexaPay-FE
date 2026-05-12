@@ -4,20 +4,23 @@ import { getAccounts, lookupAccount } from '../api/accounts'
 import { transfer } from '../api/transactions'
 import { useAuth } from '../context/AuthContext'
 import { can } from '../utils/roles'
+import { useToast } from '../context/ToastContext'
 
 export default function Transfer() {
   const { user } = useAuth()
   const role = user?.role
+  const toast = useToast()
 
   const [accounts, setAccounts]       = useState([])
   const [form, setForm]               = useState({ fromAccountId: '', amount: '', description: '' })
   const [toNumber, setToNumber]       = useState('')
-  const [recipient, setRecipient]     = useState(null)   // { id, accountName, accountNumber }
-  const [lookupState, setLookupState] = useState('idle') // idle | loading | found | notfound
+  const [recipient, setRecipient]     = useState(null)
+  const [lookupState, setLookupState] = useState('idle')
   const [submitting, setSubmitting]   = useState(false)
   const [error, setError]             = useState('')
-  const [success, setSuccess]         = useState('')
   const debounceRef = useRef(null)
+
+  useEffect(() => { document.title = 'Överföring – NexaPay' }, [])
 
   useEffect(() => {
     if (!can.transfer(role)) return
@@ -56,7 +59,6 @@ export default function Transfer() {
     e.preventDefault()
     if (!recipient) return
     setError('')
-    setSuccess('')
     if (form.fromAccountId === recipient.id) {
       setError('Från- och till-konto kan inte vara samma.')
       return
@@ -64,7 +66,7 @@ export default function Transfer() {
     setSubmitting(true)
     try {
       await transfer(form.fromAccountId, recipient.id, parseFloat(form.amount), form.description)
-      setSuccess(`Överföring på ${parseFloat(form.amount).toLocaleString('sv-SE', { style: 'currency', currency: 'SEK' })} till ${recipient.accountName} genomfördes!`)
+      toast(`Överföring på ${parseFloat(form.amount).toLocaleString('sv-SE', { style: 'currency', currency: 'SEK' })} till ${recipient.accountName} genomförd!`)
       setToNumber('')
       setRecipient(null)
       setLookupState('idle')
@@ -100,11 +102,6 @@ export default function Transfer() {
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5">
               {error}
-            </p>
-          )}
-          {success && (
-            <p className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-4 py-2.5">
-              {success}
             </p>
           )}
 
