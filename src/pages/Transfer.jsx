@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Layout from '../components/Layout'
-import { getAccounts } from '../api/accounts'
+import { getAccounts, lookupAccount } from '../api/accounts'
 import { transfer } from '../api/transactions'
 import { useAuth } from '../context/AuthContext'
 import { can } from '../utils/roles'
@@ -9,41 +9,68 @@ export default function Transfer() {
   const { user } = useAuth()
   const role = user?.role
 
-  const [accounts, setAccounts] = useState([])
-  const [form, setForm] = useState({
-    fromAccountId: '',
-    toAccountId: '',
-    amount: '',
-    description: '',
-  })
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [accounts, setAccounts]       = useState([])
+  const [form, setForm]               = useState({ fromAccountId: '', amount: '', description: '' })
+  const [toNumber, setToNumber]       = useState('')
+  const [recipient, setRecipient]     = useState(null)   // { id, accountName, accountNumber }
+  const [lookupState, setLookupState] = useState('idle') // idle | loading | found | notfound
+  const [submitting, setSubmitting]   = useState(false)
+  const [error, setError]             = useState('')
+  const [success, setSuccess]         = useState('')
+  const debounceRef = useRef(null)
 
   useEffect(() => {
     if (!can.transfer(role)) return
     getAccounts().then(res => {
-      const openAccounts = (res.data ?? []).filter(a => a.status === 'Open')
-      setAccounts(openAccounts)
-      if (openAccounts.length > 0) {
-        setForm(f => ({ ...f, fromAccountId: openAccounts[0].id }))
-      }
+      const open = (res.data ?? []).filter(a => a.status === 'Open')
+      setAccounts(open)
+      if (open.length > 0) setForm(f => ({ ...f, fromAccountId: open[0].id }))
     }).catch(() => {})
   }, [role])
 
-  async function handleSubmit(e) {
-    e.preventDefault()
+  function handleToNumberChange(e) {
+    const val = e.target.value
+    setToNumber(val)
+    setRecipient(null)
     setError('')
     setSuccess('')
-    if (form.fromAccountId === form.toAccountId) {
+
+    clearTimeout(debounceRef.current)
+
+    if (!val.trim()) {
+      setLookupState('idle')
+      return
+    }
+
+    setLookupState('loading')
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await lookupAccount(val.trim())
+        setRecipient(res.data)
+        setLookupState('found')
+      } catch {
+        setLookupState('notfound')
+      }
+    }, 500)
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!recipient) return
+    setError('')
+    setSuccess('')
+    if (form.fromAccountId === recipient.id) {
       setError('Från- och till-konto kan inte vara samma.')
       return
     }
     setSubmitting(true)
     try {
-      await transfer(form.fromAccountId, form.toAccountId, parseFloat(form.amount), form.description)
-      setSuccess('Överföringen genomfördes!')
-      setForm(f => ({ ...f, toAccountId: '', amount: '', description: '' }))
+      await transfer(form.fromAccountId, recipient.id, parseFloat(form.amount), form.description)
+      setSuccess(`Överföring på ${parseFloat(form.amount).toLocaleString('sv-SE', { style: 'currency', currency: 'SEK' })} till ${recipient.accountName} genomfördes!`)
+      setToNumber('')
+      setRecipient(null)
+      setLookupState('idle')
+      setForm(f => ({ ...f, amount: '', description: '' }))
     } catch (e) {
       setError(e.message)
     } finally {
@@ -83,6 +110,7 @@ export default function Transfer() {
             </p>
           )}
 
+          {/* Från konto */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Från konto</label>
             <select
@@ -102,18 +130,38 @@ export default function Transfer() {
             )}
           </div>
 
+          {/* Till konto – sök på kontonummer */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Till konto-ID</label>
+            <label className="block text-sm text-gray-400 mb-1">Till kontonummer</label>
             <input
               required
-              value={form.toAccountId}
-              onChange={e => setForm({ ...form, toAccountId: e.target.value })}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition font-mono text-sm"
+              value={toNumber}
+              onChange={handleToNumberChange}
+              placeholder="T.ex. SE1234567890"
+              className={`w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border transition focus:outline-none
+                ${lookupState === 'found'    ? 'border-green-500 focus:border-green-500' :
+                  lookupState === 'notfound' ? 'border-red-500 focus:border-red-500' :
+                                               'border-gray-700 focus:border-indigo-500'}`}
             />
-            <p className="text-xs text-gray-500 mt-1">Mottagarens konto-ID (GUID)</p>
+
+            {lookupState === 'loading' && (
+              <p className="text-xs text-gray-500 mt-1">Söker konto…</p>
+            )}
+            {lookupState === 'found' && recipient && (
+              <div className="mt-2 flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                <span className="text-green-400 text-sm">✓</span>
+                <div>
+                  <p className="text-sm text-white font-medium">{recipient.accountName}</p>
+                  <p className="text-xs text-gray-400">{recipient.accountNumber}</p>
+                </div>
+              </div>
+            )}
+            {lookupState === 'notfound' && (
+              <p className="text-xs text-red-400 mt-1">Inget konto hittades med det numret.</p>
+            )}
           </div>
 
+          {/* Belopp */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Belopp (SEK)</label>
             <input
@@ -125,6 +173,7 @@ export default function Transfer() {
             />
           </div>
 
+          {/* Meddelande */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Meddelande (valfritt)</label>
             <input
@@ -137,10 +186,10 @@ export default function Transfer() {
 
           <button
             type="submit"
-            disabled={submitting || accounts.length === 0}
+            disabled={submitting || !recipient || accounts.length === 0}
             className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {submitting ? 'Genomför...' : 'Skicka'}
+            {submitting ? 'Genomför…' : 'Skicka'}
           </button>
         </form>
       </div>

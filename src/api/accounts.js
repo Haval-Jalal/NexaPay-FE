@@ -44,3 +44,8 @@ export function unfreezeAccount(id) {
 export function deleteAccount(id) {
   return request(`/api/accounts/${id}`, { method: 'DELETE' }, getToken())
 }
+
+// Slå upp ett konto på kontonummer – returnerar id + namn för förhandsgranskning
+export function lookupAccount(accountNumber) {
+  return request(`/api/accounts/lookup?number=${encodeURIComponent(accountNumber)}`, {}, getToken())
+}
