@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
     if (!user?.token) return
     getMe()
       .then(res => {
-        if (!res?.data) return
+        if (!res?.data?.email || !res?.data?.role) return
         const updated = { ...user, email: res.data.email, role: res.data.role }
         localStorage.setItem('nexapay_user', JSON.stringify(updated))
         setUser(updated)

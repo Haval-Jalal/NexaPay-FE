@@ -48,8 +48,8 @@ export default function Transfer() {
         const res = await lookupAccount(val.trim())
         setRecipient(res.data)
         setLookupState('found')
-      } catch {
-        setLookupState('notfound')
+      } catch (e) {
+        setLookupState(e.message?.includes('404') || e.message?.toLowerCase().includes('hittades inte') ? 'notfound' : 'error')
       }
     }, 500)
   }
@@ -140,7 +140,7 @@ export default function Transfer() {
               placeholder="T.ex. SE1234567890"
               className={`w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border transition focus:outline-none
                 ${lookupState === 'found'    ? 'border-green-500 focus:border-green-500' :
-                  lookupState === 'notfound' ? 'border-red-500 focus:border-red-500' :
+                  lookupState === 'notfound' || lookupState === 'error' ? 'border-red-500 focus:border-red-500' :
                                                'border-gray-700 focus:border-indigo-500'}`}
             />
 
@@ -158,6 +158,9 @@ export default function Transfer() {
             )}
             {lookupState === 'notfound' && (
               <p className="text-xs text-red-400 mt-1">Inget konto hittades med det numret.</p>
+            )}
+            {lookupState === 'error' && (
+              <p className="text-xs text-red-400 mt-1">Sökningen misslyckades. Kontrollera anslutningen.</p>
             )}
           </div>
 

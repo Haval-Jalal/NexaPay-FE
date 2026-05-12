@@ -111,6 +111,7 @@ export default function Admin() {
                   placeholder="••••••••"
                   className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition"
                 />
+                <p className="text-xs text-gray-500 mt-1">Min 8 tecken · Stor bokstav · Siffra · Specialtecken</p>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Roll</label>

@@ -1,7 +1,7 @@
 # NexaPay Frontend – Granskningsrapport & Åtgärdsstatus
 
-## Status: Alla punkter åtgärdade ✅
-**Täckning: 23/23 backend-endpoints (100%)**
+## Status: Komplett ✅
+**Täckning: 23/23 backend-endpoints · Alla roller korrekt · Alla routes skyddade**
 
 ---
 
@@ -16,7 +16,7 @@
 | POST /forgot-password | `auth.forgotPassword()` | ForgotPassword.jsx | ✅ |
 | POST /reset-password | `auth.resetPassword()` | ResetPassword.jsx | ✅ |
 | POST /change-password | `auth.changePassword()` | Settings.jsx | ✅ |
-| GET /me | `auth.getMe()` | AuthContext.jsx (auto-sync vid start) | ✅ |
+| GET /me | `auth.getMe()` | AuthContext (auto-sync vid start) | ✅ |
 | POST /logout | `auth.logout()` | Layout.jsx | ✅ |
 
 ### Konton (`/api/accounts`)
@@ -58,49 +58,54 @@
 
 ## 2. Rollkontroller – frontend vs backend
 
-| `can.*` | Frontend | Backend (`Roles.cs`) | Match |
+| `can.*` | Roller | Backend (`Roles.cs`) | Match |
 |---|---|---|---|
-| `blockCard` | Admin, BankManager | Admin, BankManager | ✅ |
-| `freezeAccount` | Admin, BankManager, Teller | Admin, BankManager, Teller | ✅ |
-| `write` | Admin, BankManager, Teller, User | Admin, BankManager, Teller, User | ✅ |
-| `delete` | Admin, BankManager, User | Admin, BankManager, User | ✅ |
-| `transfer` | Admin, BankManager, User | Admin, BankManager, User | ✅ |
-| `isStaff` | Admin, BankManager, Teller, Auditor | — (används för UI-logik) | ✅ |
+| `blockCard` | Admin, BankManager | CanBlockCard | ✅ |
+| `freezeAccount` | Admin, BankManager, Teller | CanWriteAccounts | ✅ |
+| `write` | Admin, BankManager, Teller, User | CanWrite | ✅ |
+| `delete` | Admin, BankManager, User | CanDelete | ✅ |
+| `transfer` | Admin, BankManager, User | CanTransfer | ✅ |
+| `isStaff` | Admin, BankManager, Teller, Auditor | (UI-logik) | ✅ |
 
 ---
 
 ## 3. Route-skydd
 
-| Route | Skyddad | Rollkontroll | Status |
+| Route | Inloggad krävs | Rollkrav | Status |
 |---|---|---|---|
 | /dashboard | ✅ ProtectedRoute | — | ✅ |
 | /accounts/:id | ✅ ProtectedRoute | — | ✅ |
 | /transfer | ✅ ProtectedRoute | `can.transfer()` i sidan | ✅ |
 | /settings | ✅ ProtectedRoute | — | ✅ |
-| /admin | ✅ ProtectedRoute | ✅ AdminRoute (role === 'Admin') | ✅ |
+| /admin | ✅ ProtectedRoute | ✅ AdminRoute: role === 'Admin' | ✅ |
 
 ---
 
-## 4. Alla åtgärdade punkter (kronologisk ordning)
+## 4. Alla genomförda åtgärder
 
-### Ursprunglig frontend-audit
-- ✅ Rollkontroller i AccountDetail — rätt knappar per roll
+### Runda 1 – Ursprunglig frontend-audit
+- ✅ Rollkontroller i AccountDetail (rätt knappar per roll)
 - ✅ Överföring dold i nav för Teller/Auditor
-- ✅ Transfer-sidan visar "otillräcklig behörighet" för fel roller
-- ✅ Personal-dashboard med sökning, ägar-ID, statusfilter
-- ✅ Admin: användarlista med ta-bort och bekräftelsedialog
+- ✅ Transfer-sidan visar behörighetsmeddelande för fel roller
+- ✅ Personal-dashboard: sökning, ägar-ID, statusfilter, skeleton-loader
+- ✅ Admin: användarlista med ta-bort och ConfirmModal
 - ✅ `alert()` ersatt med inline-felmeddelanden
 - ✅ `confirm()` ersatt med ConfirmModal
-- ✅ Loading-skeletons i Dashboard och AccountDetail
-- ✅ Transfer: sök på kontonummer (live lookup) istället för GUID
+- ✅ Loading-skeletons (Dashboard, AccountDetail)
+- ✅ Transfer: sök på kontonummer med live-feedback
 
-### Feature parity-gaps (audit runda 2)
-- ✅ `GET /api/auth/me` — anropas vid app-start i AuthContext för att synka roll
+### Runda 2 – Feature parity
+- ✅ `GET /api/auth/me` anropas vid app-start, synkar roll och e-post
 - ✅ Oanvänd `transfer`-import borttagen från AccountDetail
 
-### Säkerhets- och kvalitetsfixar (audit runda 3)
-- ✅ Admin-route rollskyddad: `AdminRoute`-komponent i App.jsx omdirigerar icke-admins
-- ✅ Idempotency-Key header tillagd på deposit, withdraw och transfer
+### Runda 3 – Säkerhet och kvalitet
+- ✅ Admin-route rollskyddad: `AdminRoute` omdirigerar icke-admins till /dashboard
+- ✅ Idempotency-Key header på deposit, withdraw och transfer
+
+### Runda 4 – Finslipning (senaste)
+- ✅ AuthContext: striktare null-check på `getMe`-svar (kräver email + role)
+- ✅ Admin.jsx: lösenordstips tillagd (min 8 tecken, stor bokstav, siffra, specialtecken)
+- ✅ Transfer lookup: skiljer på "konto hittades inte" (404) vs serverfel
 
 ---
 
@@ -108,16 +113,16 @@
 
 | Bugg | Fix |
 |---|---|
-| 400 vid skapa konto | `JsonStringEnumConverter` — backend accepterar `"Checking"` |
-| Vit sida / modul-cache | Vite `transformIndexHtml` lägger till `?t=timestamp` på entry point |
+| 400 vid skapa konto | `JsonStringEnumConverter` — backend accepterar `"Checking"` etc. |
+| Vit sida / modul-cache | Vite `transformIndexHtml` lägger till `?t=timestamp` på entry-URL |
 | CORS / Failed to fetch | `UseCors` flyttad före `UseHttpsRedirection` |
-| Tom 401/429 body | JWT `OnChallenge` och rate-limiter `OnRejected` returnerar JSON |
-| ConfirmEmail kraschar (StrictMode) | `useRef`-guard + idempotent backend |
+| Tom 401/429 body | JWT `OnChallenge` + rate-limiter `OnRejected` returnerar JSON |
+| ConfirmEmail kraschar | `useRef`-guard (React StrictMode) + idempotent backend |
 | Valideringsfel på insättning | Beskrivningsfält ändrat till `required` |
 
 ---
 
-## 6. Nya filer
+## 6. Nya filer (branch: feature/frontend-improvements)
 
 | Fil | Beskrivning |
 |---|---|
