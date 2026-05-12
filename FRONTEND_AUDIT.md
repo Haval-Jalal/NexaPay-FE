@@ -483,3 +483,107 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 6. HTTP 429-hantering i `client.js`
 7. 404-detektering i `Transfer.jsx`
 8. Övriga lägre-prioritet
+
+---
+
+## 10. Best Practice-genomgång – 10 React-principer
+
+> Kontroll genomförd 2026-05-12. Inga kodändringar — enbart dokumentation.
+> Principer: API service layer, useEffect, loading/error-states, children-prop, miljövariabler, React Router, Context, ProtectedRoute.
+
+---
+
+### Resultat per kategori
+
+| # | Princip | Status | Kommentar |
+|---|---|---|---|
+| 1 | API-anrop i separata filer | ✅ | `src/api/` — 5 servicefiler + `client.js`. Inga `fetch()`-anrop i komponenter. |
+| 2 | `useEffect` för API-anrop | ✅ | Alla datahämtningar sker i `useEffect`. Inga anrop i component body. |
+| 3 | Loading / Success / Error states | ⚠️ | 3 ställen slukar fel tyst — se BP-1 nedan. |
+| 4 | `children`-prop / wrapper-komponenter | ✅ | `Layout`, `AuthLayout`, `ProtectedRoute`, `Modal`, `ConfirmModal`, `ToastProvider`, `AuthProvider`. |
+| 5 | API-logik samlad och återanvändbar | ✅ | `client.js` centraliserar headers, auth-token, fel-parsing och bas-URL. |
+| 6 | Inga hemligheter i koden | ✅ | Inga API-nycklar eller lösenord hårdkodade. Localhost-fallback är acceptabelt för dev. |
+| 7 | Professionell API service layer | ✅ | `request()` + `getToken()` i `client.js` — importeras av samtliga api-filer. |
+| 8 | React Router för multi-page SPA | ✅ | `BrowserRouter`, `Routes`, `NavLink`, `useNavigate`, `useLocation` — allt korrekt. |
+| 9 | Context för delad auth-state | ✅ | `AuthContext` + `ToastContext` wrappas runt hela appen. `useAuth()` / `useToast()` hooks. |
+| 10 | `ProtectedRoute` för sidskydd | ✅ | `ProtectedRoute` + `AdminRoute` i `App.jsx` — alla skyddade sidor täckta. |
+
+---
+
+### Identifierade förbättringspunkter (inga kraschbuggar)
+
+**BP-1 🟠 – Tysta catch-block lämnar användaren med blank vy utan förklaring**
+
+Tre platser slukar undantag utan att visa ett felmeddelande:
+
+| Fil | Rad | Funktion | Konsekvens |
+|---|---|---|---|
+| `AccountDetail.jsx` | 103 | `loadCards()` — tomt catch-block | Kort laddas inte men ingenting visas; användaren ser en tom kortlista utan orsak |
+| `AccountDetail.jsx` | 111 | `loadTransactions()` — tomt catch-block | Transaktioner laddas inte utan felindikator |
+| `Transfer.jsx` | 31 | `getAccounts().catch(() => {})` | Från-konto-dropdown är tom utan förklaring; användaren kan inte göra en överföring |
+
+Rekommendation: Lägg till ett `setCardsError` / `setTxError` / `setAccountsError`-state och rendera ett inline-felmeddelande i alla tre fallen. Alternativt, logga till konsolen under dev med `console.error(e)` som minsta åtgärd.
+
+---
+
+**BP-2 🟠 – Pedagogiska kommentarer kvar i API-filer och ProtectedRoute**
+
+Runda 6 rensade pedagog-kommentarer från alla sidor och auth-komponenter, men samma kommentarsstil finns kvar i:
+
+| Fil | Exempel |
+|---|---|
+| `src/api/client.js` | Radkommentarer på varje rad: `// Bygg headers – alltid JSON, lägg till Authorization om token finns` |
+| `src/api/auth.js` | Funktionsvis förklaring av varje endpoint |
+| `src/api/accounts.js` | Förklarande kommentarer om rollkrav etc. |
+| `src/api/cards.js` | Ditto |
+| `src/api/admin.js` | Ditto |
+| `src/components/ProtectedRoute.jsx` | 10-radigt kommentarsblock i toppen |
+
+Konsekvens: Inkonsekvent kodstil — komponenter är rena, service-filer är fulla av pedagogiska förklaringar. Ingen funktionspåverkan.
+
+Rekommendation: Kör samma kommentar-rensning som gjordes i Runda 6, men på api-filerna och `ProtectedRoute.jsx`.
+
+---
+
+**BP-3 🟠 – Dubbel `animate-fade-in` vid sidnavigering på skyddade sidor**
+
+Två ställen applicerar `key={location.pathname}` + `animate-fade-in` på varandra:
+
+| Fil | Rad | Scope |
+|---|---|---|
+| `App.jsx` | 28 | Yttre wrapper i `AnimatedRoutes` — täcker hela sidan inkl. Layout |
+| `Layout.jsx` | 108 | Inre wrapper runt `{children}` — täcker bara sidinnehållet |
+
+Auth-sidor (utan Layout) triggar animationen en gång. Skyddade sidor triggar den två gånger. Visuellt märks det knappt (båda körs 0.15s parallellt) men det är redundant — Layout-wrappern är redan inkluderad i `AnimatedRoutes`-remounten.
+
+Rekommendation: Ta bort antingen `key={location.pathname}` i `Layout.jsx` rad 108 eller i `AnimatedRoutes` i `App.jsx` — behåll bara ett ställe.
+
+---
+
+**BP-4 🟠 – `eslint-disable-line` i AuthContext utan förklarande kommentar**
+
+`AuthContext.jsx` rad 29:
+```js
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+```
+
+`user` används inuti `useEffect` men är utesluten från dependency-arrayen med avsikt (för att undvika oändlig loop). Suppressionen är korrekt, men utan förklaring ser det ut som ett förbisett lint-varning snarare än ett medvetet beslut.
+
+Rekommendation: Byt ut kommentaren mot en förklaring, t.ex.:
+```js
+  }, []) // avsiktligt — vi vill bara köra vid mount; user i deps → oändlig loop
+```
+Alternativt: refaktorera med `useRef(false)` som mount-guard och ta bort eslint-suppression helt.
+
+---
+
+### Sammanfattning
+
+Alla 10 best practices är i grunden uppfyllda. Fyra förbättringspunkter hittades — alla klassade 🟠 (mindre), inga kraschbuggar.
+
+| ID | Fil | Problem | Allvar |
+|---|---|---|---|
+| BP-1 | `AccountDetail.jsx`, `Transfer.jsx` | 3 tysta catch-block → blank vy vid fel | 🟠 |
+| BP-2 | `src/api/*.js`, `ProtectedRoute.jsx` | Pedagogiska kommentarer inte rensade | 🟠 |
+| BP-3 | `App.jsx` + `Layout.jsx` | Dubbel fade-in-animation på skyddade sidor | 🟠 |
+| BP-4 | `AuthContext.jsx` | `eslint-disable-line` utan förklarande kommentar | 🟠 |
