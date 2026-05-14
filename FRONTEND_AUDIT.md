@@ -363,7 +363,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#1 🔴 KRITISK – MediatR-versionsmismatch (Domain vs Application)**
+**#1 🔴 KRITISK – MediatR-versionsmismatch (Domain vs Application)** — ✅ ÅTGÄRDAD (avsnitt 11.2)
 
 | Fält | Värde |
 |---|---|
@@ -373,7 +373,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#2 🔴 KRITISK – `Transfer.jsx`: `setSuccess` anropas men state är inte deklarerat**
+**#2 🔴 KRITISK – `Transfer.jsx`: `setSuccess` anropas men state är inte deklarerat** — ✅ ÅTGÄRDAD (avsnitt 11.3)
 
 | Fält | Värde |
 |---|---|
@@ -383,7 +383,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#3 🟡 VIKTIG – SMTP inte konfigurerat (e-postbekräftelse & lösenordsåterställning fungerar inte)**
+**#3 🟡 VIKTIG – SMTP inte konfigurerat (e-postbekräftelse & lösenordsåterställning fungerar inte)** — ✅ KORRIGERAD (avsnitt 11.1 — påståendet var delvis fel; creds blankade lokalt, kommentar rättad)
 
 | Fält | Värde |
 |---|---|
@@ -394,7 +394,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#4 🟡 VIKTIG – CORS saknas för produktion**
+**#4 🟡 VIKTIG – CORS saknas för produktion** — ⏳ EJ ÅTGÄRDAD (avsiktligt — tom lista = korrekt "fail-closed"; deploy-konfiguration, inte en bugg)
 
 | Fält | Värde |
 |---|---|
@@ -404,7 +404,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#5 🟡 VIKTIG – Ingen `.env`-fil i frontend (ingen produktionsmiljöhantering)**
+**#5 🟡 VIKTIG – Ingen `.env`-fil i frontend (ingen produktionsmiljöhantering)** — ✅ ÅTGÄRDAD (avsnitt 11.3)
 
 | Fält | Värde |
 |---|---|
@@ -414,7 +414,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#6 🟡 VIKTIG – HTTP 429 (rate limiting) hanteras inte meningsfullt i frontend**
+**#6 🟡 VIKTIG – HTTP 429 (rate limiting) hanteras inte meningsfullt i frontend** — ⏳ EJ ÅTGÄRDAD (avsiktligt — påståendet var överdrivet; backend returnerar redan ett läsbart meddelande, se 11.1)
 
 | Fält | Värde |
 |---|---|
@@ -424,7 +424,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#7 🟡 VIKTIG – Transfer.jsx: 404-detektering är skör (string-matching på felmeddelande)**
+**#7 🟡 VIKTIG – Transfer.jsx: 404-detektering är skör (string-matching på felmeddelande)** — ✅ ÅTGÄRDAD (avsnitt 11.3)
 
 | Fält | Värde |
 |---|---|
@@ -434,7 +434,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#8 🟡 VIKTIG – Användare antas ha exakt en roll (`FirstOrDefault` i JWT-genereringen)**
+**#8 🟡 VIKTIG – Användare antas ha exakt en roll (`FirstOrDefault` i JWT-genereringen)** — ⏳ EJ ÅTGÄRDAD (avsiktlig design — en användare tilldelas aldrig mer än en roll)
 
 | Fält | Värde |
 |---|---|
@@ -445,7 +445,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#9 🟠 MINDRE – Dubbel `NameIdentifier`-claim i JWT**
+**#9 🟠 MINDRE – Dubbel `NameIdentifier`-claim i JWT** — ⏳ EJ ÅTGÄRDAD (ofarlig redundans — att ta bort den explicita claimen riskerar att slå sönder `GetUserId()`)
 
 | Fält | Värde |
 |---|---|
@@ -455,7 +455,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ---
 
-**#10 🟠 MINDRE – Swagger visar JWT-lås på ej skyddade endpoints**
+**#10 🟠 MINDRE – Swagger visar JWT-lås på ej skyddade endpoints** — ⏳ EJ ÅTGÄRDAD (kosmetiskt — kräver en operation filter; ingen runtime-påverkan)
 
 | Fält | Värde |
 |---|---|
@@ -467,22 +467,22 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ### 9.4 Sammanfattning
 
-| Allvarlighet | Antal | Åtgärdsstatus |
+| Allvarlighet | Antal | Åtgärdsstatus (uppdaterad — se avsnitt 11) |
 |---|---|---|
-| 🔴 Kritisk | 2 | Ej åtgärdade |
-| 🟡 Viktig | 6 | Ej åtgärdade |
-| 🟠 Mindre | 2 | Ej åtgärdade |
+| 🔴 Kritisk | 2 | ✅ 2 åtgärdade (#1, #2) |
+| 🟡 Viktig | 6 | ✅ 3 åtgärdade/korrigerade (#3, #5, #7) · ⏳ 3 ej åtgärdade avsiktligt (#4, #6, #8) |
+| 🟠 Mindre | 2 | ⏳ 2 ej åtgärdade avsiktligt (#9, #10) |
 | ✅ Verifierat korrekt | 23 endpoints + alla DTO-kontrakt | — |
 
-**Rekommenderad åtgärdsordning:**
-1. `Transfer.jsx` rad 51 – `setSuccess` ReferenceError (1-radsfix, frontend kraschbug)
-2. MediatR-versionsmismatch i Domain.csproj (1-radsfix, potentiell körtidskrasch)
-3. SMTP-konfiguration (krävs för att e-postflödet ska fungera)
-4. CORS-konfiguration för produktion (krävs inför deploy)
-5. `.env`-filer för frontend (krävs inför deploy)
-6. HTTP 429-hantering i `client.js`
-7. 404-detektering i `Transfer.jsx`
-8. Övriga lägre-prioritet
+**Rekommenderad åtgärdsordning** (status efter branch `fix/audit-followup`):
+1. ✅ `Transfer.jsx` rad 51 – `setSuccess` ReferenceError (1-radsfix, frontend kraschbug)
+2. ✅ MediatR-versionsmismatch i Domain.csproj (1-radsfix, potentiell körtidskrasch)
+3. ✅ SMTP-konfiguration – korrigerad (påståendet var delvis fel, se 11.1)
+4. ⏳ CORS-konfiguration för produktion – ej åtgärdad avsiktligt (deploy-config, korrekt fail-closed)
+5. ✅ `.env`-filer för frontend
+6. ⏳ HTTP 429-hantering i `client.js` – ej åtgärdad avsiktligt (fungerar redan)
+7. ✅ 404-detektering i `Transfer.jsx`
+8. ⏳ Övriga lägre-prioritet (#8, #9, #10) – ej åtgärdade avsiktligt
 
 ---
 
@@ -499,7 +499,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 |---|---|---|---|
 | 1 | API-anrop i separata filer | ✅ | `src/api/` — 5 servicefiler + `client.js`. Inga `fetch()`-anrop i komponenter. |
 | 2 | `useEffect` för API-anrop | ✅ | Alla datahämtningar sker i `useEffect`. Inga anrop i component body. |
-| 3 | Loading / Success / Error states | ⚠️ | 3 ställen slukar fel tyst — se BP-1 nedan. |
+| 3 | Loading / Success / Error states | ✅ | BP-1 åtgärdad — de 3 tysta catch-blocken visar nu inline-fel (avsnitt 11.3). |
 | 4 | `children`-prop / wrapper-komponenter | ✅ | `Layout`, `AuthLayout`, `ProtectedRoute`, `Modal`, `ConfirmModal`, `ToastProvider`, `AuthProvider`. |
 | 5 | API-logik samlad och återanvändbar | ✅ | `client.js` centraliserar headers, auth-token, fel-parsing och bas-URL. |
 | 6 | Inga hemligheter i koden | ✅ | Inga API-nycklar eller lösenord hårdkodade. Localhost-fallback är acceptabelt för dev. |
@@ -512,7 +512,7 @@ Allvarlighetsnivåer: 🔴 Kritisk · 🟡 Viktig · 🟠 Mindre
 
 ### Identifierade förbättringspunkter (inga kraschbuggar)
 
-**BP-1 🟠 – Tysta catch-block lämnar användaren med blank vy utan förklaring**
+**BP-1 🟠 – Tysta catch-block lämnar användaren med blank vy utan förklaring** — ✅ ÅTGÄRDAD (avsnitt 11.3)
 
 Tre platser slukar undantag utan att visa ett felmeddelande:
 
@@ -526,7 +526,7 @@ Rekommendation: Lägg till ett `setCardsError` / `setTxError` / `setAccountsErro
 
 ---
 
-**BP-2 🟠 – Pedagogiska kommentarer kvar i API-filer och ProtectedRoute**
+**BP-2 🟠 – Pedagogiska kommentarer kvar i API-filer och ProtectedRoute** — ✅ ÅTGÄRDAD (avsnitt 11.3)
 
 Runda 6 rensade pedagog-kommentarer från alla sidor och auth-komponenter, men samma kommentarsstil finns kvar i:
 
@@ -545,7 +545,7 @@ Rekommendation: Kör samma kommentar-rensning som gjordes i Runda 6, men på api
 
 ---
 
-**BP-3 🟠 – Dubbel `animate-fade-in` vid sidnavigering på skyddade sidor**
+**BP-3 🟠 – Dubbel `animate-fade-in` vid sidnavigering på skyddade sidor** — ✅ ÅTGÄRDAD (avsnitt 11.3)
 
 Två ställen applicerar `key={location.pathname}` + `animate-fade-in` på varandra:
 
@@ -560,7 +560,7 @@ Rekommendation: Ta bort antingen `key={location.pathname}` i `Layout.jsx` rad 10
 
 ---
 
-**BP-4 🟠 – `eslint-disable-line` i AuthContext utan förklarande kommentar**
+**BP-4 🟠 – `eslint-disable-line` i AuthContext utan förklarande kommentar** — ✅ ÅTGÄRDAD (avsnitt 11.3 — effekten omskriven utan reaktiva deps, suppressionen borttagen)
 
 `AuthContext.jsx` rad 29:
 ```js
@@ -579,14 +579,14 @@ Alternativt: refaktorera med `useRef(false)` som mount-guard och ta bort eslint-
 
 ### Sammanfattning
 
-Alla 10 best practices är i grunden uppfyllda. Fyra förbättringspunkter hittades — alla klassade 🟠 (mindre), inga kraschbuggar.
+Alla 10 best practices är i grunden uppfyllda. Fyra förbättringspunkter hittades — alla klassade 🟠 (mindre), inga kraschbuggar. **Samtliga fyra åtgärdade i branch `fix/audit-followup` (se avsnitt 11.3).**
 
-| ID | Fil | Problem | Allvar |
-|---|---|---|---|
-| BP-1 | `AccountDetail.jsx`, `Transfer.jsx` | 3 tysta catch-block → blank vy vid fel | 🟠 |
-| BP-2 | `src/api/*.js`, `ProtectedRoute.jsx` | Pedagogiska kommentarer inte rensade | 🟠 |
-| BP-3 | `App.jsx` + `Layout.jsx` | Dubbel fade-in-animation på skyddade sidor | 🟠 |
-| BP-4 | `AuthContext.jsx` | `eslint-disable-line` utan förklarande kommentar | 🟠 |
+| ID | Fil | Problem | Allvar | Status |
+|---|---|---|---|---|
+| BP-1 | `AccountDetail.jsx`, `Transfer.jsx` | 3 tysta catch-block → blank vy vid fel | 🟠 | ✅ ÅTGÄRDAD |
+| BP-2 | `src/api/*.js`, `ProtectedRoute.jsx` | Pedagogiska kommentarer inte rensade | 🟠 | ✅ ÅTGÄRDAD |
+| BP-3 | `App.jsx` + `Layout.jsx` | Dubbel fade-in-animation på skyddade sidor | 🟠 | ✅ ÅTGÄRDAD |
+| BP-4 | `AuthContext.jsx` | `eslint-disable-line` utan förklarande kommentar | 🟠 | ✅ ÅTGÄRDAD |
 
 ---
 
