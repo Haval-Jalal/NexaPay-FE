@@ -13,6 +13,7 @@ import ConfirmEmail   from './pages/ConfirmEmail'
 import Dashboard     from './pages/Dashboard'
 import AccountDetail from './pages/AccountDetail'
 import Transfer      from './pages/Transfer'
+import PayInvoice    from './pages/PayInvoice'
 import Settings      from './pages/Settings'
 import Admin         from './pages/Admin'
 
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/dashboard"    element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/accounts/:id" element={<ProtectedRoute><AccountDetail /></ProtectedRoute>} />
             <Route path="/transfer"     element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
+            <Route path="/pay-invoice"  element={<ProtectedRoute><PayInvoice /></ProtectedRoute>} />
             <Route path="/settings"     element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/admin"        element={<ProtectedRoute><AdminRoute /></ProtectedRoute>} />
           </Routes>

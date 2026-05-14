@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { logout } from '../api/auth'
 import { can } from '../utils/roles'
-import { LayoutDashboard, ArrowLeftRight, Cog, Shield, Menu, X } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, Receipt, Cog, Shield, Menu, X } from 'lucide-react'
 
 export default function Layout({ children }) {
   const { user, logout: clearUser } = useAuth()
@@ -16,9 +16,10 @@ export default function Layout({ children }) {
   const [loggingOut, setLoggingOut]     = useState(false)
 
   const navItems = [
-    { to: '/dashboard', label: 'Översikt',     Icon: LayoutDashboard, show: true },
-    { to: '/transfer',  label: 'Överföring',    Icon: ArrowLeftRight,  show: can.transfer(role) },
-    { to: '/settings',  label: 'Inställningar', Icon: Cog,             show: true },
+    { to: '/dashboard',   label: 'Översikt',      Icon: LayoutDashboard, show: true },
+    { to: '/transfer',    label: 'Överföring',    Icon: ArrowLeftRight,  show: can.transfer(role) },
+    { to: '/pay-invoice', label: 'Betala faktura', Icon: Receipt,        show: can.write(role) },
+    { to: '/settings',    label: 'Inställningar', Icon: Cog,             show: true },
   ]
 
   async function handleLogout() {

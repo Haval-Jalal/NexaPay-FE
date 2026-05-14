@@ -7,8 +7,12 @@
 
 ## 1. Betala faktura (OCR-betalning)
 
-**Status:** Idé – ej påbörjad
-**Föreslagen branch:** `feature/invoice-payment` (egen branch – detta är en feature, inte en audit-åtgärd)
+**Status:** ✅ Implementerad (v1) – branch `feature/invoice-payment`
+**Byggd enligt "minimal version" nedan.** Specen kvar som referens på vad som byggdes.
+
+Implementerat i v1:
+- Backend: `TransactionType.InvoicePayment`, `Bankgiro`/`Ocr`-fält på `Transaction`, `Account.PayInvoice()`, `OcrPolicy` (mod-10), `PayInvoice`-command/handler/validator, `POST /api/transactions/invoice-payment`, EF-migration `AddInvoicePaymentFields`. Tester: 3 integrationstester + `OcrPolicyTests`.
+- Frontend: `payInvoice()` i `api/transactions.js`, sida `PayInvoice.jsx` (`/pay-invoice`) med klientsidig mod-10-validering, navlänk i `Layout.jsx`, `InvoicePayment` visas i transaktionslistan i `AccountDetail.jsx`.
 
 ### Bakgrund
 
@@ -59,8 +63,10 @@ OCR-numret ska valideras innan betalning:
 - Länk i `Layout.jsx`-navigeringen
 - `Idempotency-Key` på betalningsanropet (samma mönster som deposit/withdraw/transfer)
 
-### Öppna frågor
+### Öppna frågor – beslut i v1
 
-- Ska "extern mottagare" modelleras alls, eller är det bara en utbetalning från ett konto?
-- Stödja kommande betalningar (förfallodatum i framtiden) eller bara direktbetalning i v1?
-- Behövs ett betalningsregister/mottagarlista, eller skriver man in bankgiro varje gång?
+- **Extern mottagare modelleras inte** – ingen entitet; bankgiro + OCR lagras som fält på transaktionen, saldot minskar som vid ett uttag.
+- **Ingen framtida betalning** – endast direktbetalning (förfallodatum skippat i v1).
+- **Inget mottagarregister** – bankgiro skrivs in varje gång.
+
+Dessa kan tas upp igen om funktionen ska byggas ut.
