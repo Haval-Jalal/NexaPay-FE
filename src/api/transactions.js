@@ -31,3 +31,11 @@ export function transfer(fromAccountId, toAccountId, amount, description) {
     headers: { 'Idempotency-Key': crypto.randomUUID() },
   }, getToken())
 }
+
+export function payInvoice(accountId, amount, bankgiro, ocr, description) {
+  return request('/api/transactions/invoice-payment', {
+    method: 'POST',
+    body: JSON.stringify({ accountId, amount, bankgiro, ocr, description }),
+    headers: { 'Idempotency-Key': crypto.randomUUID() },
+  }, getToken())
+}

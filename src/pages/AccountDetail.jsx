@@ -9,14 +9,14 @@ import { getCardsByAccount, createCard, activateCard, blockCard, unblockCard } f
 import { getTransactions, deposit, withdraw } from '../api/transactions'
 import { can } from '../utils/roles'
 import { useToast } from '../context/useToast'
-import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Receipt } from 'lucide-react'
 
 const STATUS_LABELS      = { Open: 'Öppen', Frozen: 'Fryst', Closed: 'Stängd' }
 const STATUS_COLORS      = { Open: 'text-green-400', Frozen: 'text-blue-400', Closed: 'text-red-400' }
 const CARD_STATUS_LABELS = { Active: 'Aktiv', Inactive: 'Inaktiv', Blocked: 'Blockerad', Expired: 'Utgången' }
 const CARD_STATUS_COLORS = { Active: 'text-green-300', Inactive: 'text-yellow-300', Blocked: 'text-red-300', Expired: 'text-gray-400' }
-const TX_COLORS          = { Deposit: 'text-green-400', Withdrawal: 'text-red-400', Transfer: 'text-blue-400' }
-const TX_ICONS           = { Deposit: ArrowDownLeft, Withdrawal: ArrowUpRight, Transfer: ArrowLeftRight }
+const TX_COLORS          = { Deposit: 'text-green-400', Withdrawal: 'text-red-400', Transfer: 'text-blue-400', InvoicePayment: 'text-red-400' }
+const TX_ICONS           = { Deposit: ArrowDownLeft, Withdrawal: ArrowUpRight, Transfer: ArrowLeftRight, InvoicePayment: Receipt }
 
 function groupByDate(txList) {
   const today     = new Date()
@@ -431,13 +431,13 @@ export default function AccountDetail() {
               )}
             </h2>
             <div className="flex gap-1">
-              {['All', 'Deposit', 'Withdrawal', 'Transfer'].map(f => (
+              {['All', 'Deposit', 'Withdrawal', 'Transfer', 'InvoicePayment'].map(f => (
                 <button
                   key={f}
                   onClick={() => setTxFilter(f)}
                   className={`text-xs px-3 py-1 rounded-lg transition ${txFilter === f ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
                 >
-                  {{ All: 'Alla', Deposit: 'Insättning', Withdrawal: 'Uttag', Transfer: 'Överföring' }[f]}
+                  {{ All: 'Alla', Deposit: 'Insättning', Withdrawal: 'Uttag', Transfer: 'Överföring', InvoicePayment: 'Faktura' }[f]}
                 </button>
               ))}
             </div>
@@ -466,7 +466,7 @@ export default function AccountDetail() {
                         return (
                           <div key={tx.id} className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center gap-3">
                             <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                              tx.type === 'Deposit' ? 'bg-green-500/15' : tx.type === 'Withdrawal' ? 'bg-red-500/15' : 'bg-blue-500/15'
+                              tx.type === 'Deposit' ? 'bg-green-500/15' : tx.type === 'Transfer' ? 'bg-blue-500/15' : 'bg-red-500/15'
                             }`}>
                               {Icon && <Icon size={14} className={TX_COLORS[tx.type]} />}
                             </div>
@@ -476,7 +476,7 @@ export default function AccountDetail() {
                             </div>
                             <div className="text-right shrink-0">
                               <p className={`font-semibold text-sm ${TX_COLORS[tx.type]}`}>
-                                {tx.type === 'Deposit' ? '+' : tx.type === 'Withdrawal' ? '−' : '⇄'}{tx.amount.toLocaleString('sv-SE', { style: 'currency', currency: tx.currency || 'SEK' })}
+                                {tx.type === 'Deposit' ? '+' : tx.type === 'Transfer' ? '⇄' : '−'}{tx.amount.toLocaleString('sv-SE', { style: 'currency', currency: tx.currency || 'SEK' })}
                               </p>
                               <p className="text-xs text-gray-500">
                                 {tx.balanceAfterTransaction.toLocaleString('sv-SE', { style: 'currency', currency: tx.currency || 'SEK' })}
