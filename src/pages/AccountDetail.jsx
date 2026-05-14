@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import Layout from '../components/Layout'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
@@ -8,7 +8,7 @@ import { getAccount, freezeAccount, unfreezeAccount, deleteAccount } from '../ap
 import { getCardsByAccount, createCard, activateCard, blockCard, unblockCard } from '../api/cards'
 import { getTransactions, deposit, withdraw } from '../api/transactions'
 import { can } from '../utils/roles'
-import { useToast } from '../context/ToastContext'
+import { useToast } from '../context/useToast'
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react'
 
 const STATUS_LABELS      = { Open: 'Öppen', Frozen: 'Fryst', Closed: 'Stängd' }
@@ -65,6 +65,8 @@ export default function AccountDetail() {
   const [copied, setCopied]           = useState(null)
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
+  const [cardsError, setCardsError]   = useState('')
+  const [txError, setTxError]         = useState('')
 
   // Modal state
   const [modal, setModal]             = useState(null)
@@ -100,7 +102,10 @@ export default function AccountDetail() {
     try {
       const res = await getCardsByAccount(id)
       setCards(res.data ?? [])
-    } catch { /* sekundär info */ }
+      setCardsError('')
+    } catch (e) {
+      setCardsError(e.message)
+    }
   }
 
   async function loadTransactions(page = 1) {
@@ -108,7 +113,10 @@ export default function AccountDetail() {
       const res = await getTransactions(id, page)
       setTransactions(res.data.items ?? [])
       setPagination({ page: res.data.page, totalPages: res.data.totalPages, totalCount: res.data.totalCount ?? null })
-    } catch { /* sekundär info */ }
+      setTxError('')
+    } catch (e) {
+      setTxError(e.message)
+    }
   }
 
   useEffect(() => {
@@ -361,7 +369,10 @@ export default function AccountDetail() {
             )}
           </div>
 
-          {cards.length === 0 && (
+          {cardsError && (
+            <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2 mb-3">{cardsError}</p>
+          )}
+          {!cardsError && cards.length === 0 && (
             <p className="text-gray-500 text-sm">Inga kort kopplade till detta konto.</p>
           )}
 
@@ -437,7 +448,10 @@ export default function AccountDetail() {
             </div>
           </div>
 
-          {transactions.length === 0 && (
+          {txError && (
+            <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2 mb-3">{txError}</p>
+          )}
+          {!txError && transactions.length === 0 && (
             <p className="text-gray-500 text-sm">Inga transaktioner ännu.</p>
           )}
 

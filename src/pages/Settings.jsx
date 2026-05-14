@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import { changePassword } from '../api/auth'
-import { useAuth } from '../context/AuthContext'
-import { useToast } from '../context/ToastContext'
+import { useAuth } from '../context/useAuth'
+import { useToast } from '../context/useToast'
 
 const STRENGTH_LEVELS = [
   { label: '',      bar: 'bg-gray-700', text: '' },

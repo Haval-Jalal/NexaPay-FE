@@ -14,5 +14,4 @@ export const can = {
   delete:        r => ['Admin', 'BankManager', 'User'].includes(r),
   transfer:      r => ['Admin', 'BankManager', 'User'].includes(r),
   isStaff:       r => ['Admin', 'BankManager', 'Teller', 'Auditor'].includes(r),
-  viewAll:       r => ['Admin', 'BankManager', 'Teller', 'Auditor'].includes(r),
 }

@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-
-const ToastCtx = createContext(null)
+import { useState, useCallback } from 'react'
+import { ToastContext } from './useToast'
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
@@ -12,7 +11,7 @@ export function ToastProvider({ children }) {
   }, [])
 
   return (
-    <ToastCtx.Provider value={toast}>
+    <ToastContext.Provider value={toast}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
@@ -27,8 +26,6 @@ export function ToastProvider({ children }) {
           </div>
         ))}
       </div>
-    </ToastCtx.Provider>
+    </ToastContext.Provider>
   )
 }
-
-export const useToast = () => useContext(ToastCtx)

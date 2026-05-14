@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import Layout from '../components/Layout'
 import { getAccounts, lookupAccount } from '../api/accounts'
 import { transfer } from '../api/transactions'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { can } from '../utils/roles'
-import { useToast } from '../context/ToastContext'
+import { useToast } from '../context/useToast'
 
 export default function Transfer() {
   const { user } = useAuth()
@@ -28,7 +28,7 @@ export default function Transfer() {
       const open = (res.data ?? []).filter(a => a.status === 'Open')
       setAccounts(open)
       if (open.length > 0) setForm(f => ({ ...f, fromAccountId: open[0].id }))
-    }).catch(() => {})
+    }).catch(e => setError(e.message))
   }, [role])
 
   async function doLookup(val) {
@@ -39,7 +39,7 @@ export default function Transfer() {
       setRecipient(res.data)
       setLookupState('found')
     } catch (e) {
-      setLookupState(e.message?.includes('404') || e.message?.toLowerCase().includes('hittades inte') ? 'notfound' : 'error')
+      setLookupState(e.status === 404 ? 'notfound' : 'error')
     }
   }
 
@@ -48,7 +48,6 @@ export default function Transfer() {
     setToNumber(val)
     setRecipient(null)
     setError('')
-    setSuccess('')
     clearTimeout(debounceRef.current)
     if (!val.trim()) { setLookupState('idle'); return }
     setLookupState('loading')

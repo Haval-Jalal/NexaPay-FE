@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import { adminCreateUser, listUsers, deleteUser } from '../api/admin'
-import { useToast } from '../context/ToastContext'
+import { useToast } from '../context/useToast'
 
 const ROLES = ['User', 'Teller', 'Auditor', 'BankManager', 'Admin']
 
