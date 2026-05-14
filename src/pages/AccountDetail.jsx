@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import Layout from '../components/Layout'
@@ -89,40 +89,35 @@ export default function AccountDetail() {
     })
   }
 
-  async function loadAccount() {
-    try {
-      const res = await getAccount(id)
-      setAccount(res.data)
-    } catch (e) {
-      setError(e.message)
-    }
-  }
+  const loadAccount = useCallback(() => {
+    return getAccount(id)
+      .then(res => setAccount(res.data))
+      .catch(e => setError(e.message))
+  }, [id])
 
-  async function loadCards() {
-    try {
-      const res = await getCardsByAccount(id)
-      setCards(res.data ?? [])
-      setCardsError('')
-    } catch (e) {
-      setCardsError(e.message)
-    }
-  }
+  const loadCards = useCallback(() => {
+    return getCardsByAccount(id)
+      .then(res => {
+        setCards(res.data ?? [])
+        setCardsError('')
+      })
+      .catch(e => setCardsError(e.message))
+  }, [id])
 
-  async function loadTransactions(page = 1) {
-    try {
-      const res = await getTransactions(id, page)
-      setTransactions(res.data.items ?? [])
-      setPagination({ page: res.data.page, totalPages: res.data.totalPages, totalCount: res.data.totalCount ?? null })
-      setTxError('')
-    } catch (e) {
-      setTxError(e.message)
-    }
-  }
+  const loadTransactions = useCallback((page = 1) => {
+    return getTransactions(id, page)
+      .then(res => {
+        setTransactions(res.data.items ?? [])
+        setPagination({ page: res.data.page, totalPages: res.data.totalPages, totalCount: res.data.totalCount ?? null })
+        setTxError('')
+      })
+      .catch(e => setTxError(e.message))
+  }, [id])
 
   useEffect(() => {
     Promise.all([loadAccount(), loadCards(), loadTransactions()])
       .finally(() => setLoading(false))
-  }, [id])
+  }, [loadAccount, loadCards, loadTransactions])
 
   function openModal(name, cardId = null) {
     setModal(name)

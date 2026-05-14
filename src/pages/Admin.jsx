@@ -18,19 +18,16 @@ export default function Admin() {
 
   const [confirm, setConfirm]     = useState(null)
   const [deleting, setDeleting]   = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  async function loadUsers() {
-    try {
-      const res = await listUsers()
-      setUsers(res.data ?? [])
-    } catch (e) {
-      setUsersError(e.message)
-    } finally {
-      setLoadingUsers(false)
-    }
-  }
-
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => {
+    let active = true
+    listUsers()
+      .then(res => { if (active) setUsers(res.data ?? []) })
+      .catch(e => { if (active) setUsersError(e.message) })
+      .finally(() => { if (active) setLoadingUsers(false) })
+    return () => { active = false }
+  }, [refreshKey])
 
   useEffect(() => { document.title = 'Admin – NexaPay' }, [])
 
@@ -42,7 +39,7 @@ export default function Admin() {
       await adminCreateUser(form.email, form.password, form.role)
       toast(`Användare "${form.email}" skapades med rollen ${form.role}.`)
       setForm({ email: '', password: '', role: 'User' })
-      loadUsers()
+      setRefreshKey(k => k + 1)
     } catch (e) {
       setFormError(e.message)
     } finally {

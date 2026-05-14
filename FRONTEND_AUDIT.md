@@ -633,16 +633,73 @@ Alla 10 best practices är i grunden uppfyllda. Fyra förbättringspunkter hitta
 **Åtgärdat:**
 - **`NexaPay.Tests` byggde inte** – 6× CS0854 i `RegisterHandlerTests.cs`. `IAuthService.RegisterAsync` fick en 4:e valfri parameter men Moq-anropen skickade 3 argument (expression trees tillåter inte utelämnade valfria args). Doldes av fil-låsfel i tidigare builds. Fixat med `It.IsAny<bool>()`.
 
-**Ej åtgärdat – kräver beslut:**
-- **2 integrationstester faller** – `AdminCreateUser_WithValidStaffRole_Returns200` och `AdminCreateUser_StaffRoleWithExternalEmail_Returns400`. Rotorsak: testhjälparen `CreateAndLoginAsAdminAsync` använder hårdkodad e-post `admin@nexapay.com` som krockar med en seed-användare (annat lösenord) → login 401 → `KeyNotFoundException`. Förbefintligt, doldes av CS0854-bygget. Föreslagen fix: unik e-post per anrop.
-- **`npm run lint` – 4 kvarvarande fel** – `react-hooks/set-state-in-effect` i `Dashboard`, `Admin`, `ConfirmEmail`, `AccountDetail`. Standardmönstret "ladda data vid mount". Lämnade orörda (regelns stränghet är diskutabel).
+**Åtgärdat i branch `fix/audit-remaining` (se avsnitt 12):**
+- **2 integrationstester faller** – `AdminCreateUser_WithValidStaffRole_Returns200` och `AdminCreateUser_StaffRoleWithExternalEmail_Returns400`. Rotorsak: testhjälparen `CreateAndLoginAsAdminAsync` använde hårdkodad e-post `admin@nexapay.com` som krockade med en seed-användare (annat lösenord) → login 401 → `KeyNotFoundException`. ✅ Åtgärdad – unik e-post per anrop.
+- **`npm run lint` – 4 kvarvarande fel** – `react-hooks/set-state-in-effect` i `Dashboard`, `Admin`, `ConfirmEmail`, `AccountDetail`. ✅ Åtgärdad – effekterna omskrivna.
 
 ### 11.5 Verifiering
 
 | | Resultat |
 |---|---|
 | Backend-build | ✅ Hela solutionen 0/0 |
-| Backend-tester | ✅ 158/160 (2 förbefintliga fel enligt 11.4) |
+| Backend-tester | ✅ 158/160 (2 förbefintliga fel enligt 11.4 – åtgärdade i avsnitt 12) |
 | Frontend-build | ✅ `npm run build` rent |
-| Frontend-lint | 4 förbefintliga fel kvar (11.4); 2 åtgärdade via context-split |
+| Frontend-lint | 4 förbefintliga fel kvar (11.4 – åtgärdade i avsnitt 12); 2 åtgärdade via context-split |
 | Manuell körning | ✅ Backend `:5190`, frontend `:5173` – bekräftat fungerande |
+
+---
+
+## 12. Audit-uppföljning II – branch `fix/audit-remaining`
+
+> Genomförd 2026-05-14. Åtgärdar de två kvarvarande "kräver beslut"-punkterna från avsnitt 11.4.
+> Samma branchnamn `fix/audit-remaining` i båda repos.
+
+### 12.1 Åtgärder
+
+| # | Repo / Fil | Åtgärd |
+|---|---|---|
+| A1 | `NexaPay.Tests/Integration/ApiIntegrationTestBase.cs` | `CreateAndLoginAsAdminAsync` genererar unik e-post per anrop (`admin_{guid}@nexapay.com`) istället för hårdkodad `admin@nexapay.com`. Default-parametern ändrad till `string? email = null` med `??=`-fallback. Eliminerar krocken med seedad admin-användare. |
+| A2 | `src/pages/Dashboard.jsx`, `Admin.jsx` | Datahämtning flyttad in i `useEffect` som `.then()`-kedja med `active`-avbrytningsguard; omladdning från handlers sker via `refreshKey`-state istället för att anropa loader-funktionen. |
+| A2 | `src/pages/ConfirmEmail.jsx` | `setStatus('pending')` borttagen ur effekten – initialvärdet härleds nu direkt: `useState(userId && token ? 'loading' : 'pending')`. |
+| A2 | `src/pages/AccountDetail.jsx` | Loader-funktionerna (`loadAccount`/`loadCards`/`loadTransactions`) omskrivna från `async/await` till `.then()`-kedjor. De återanvänds på ~10 ställen så de behölls som komponentfunktioner; `.then()`-callbacks känns igen av regeln som icke-synkrona. Wrappade i `useCallback(..., [id])` så de får stabil referens → mount-effekten deklarerar dem korrekt i deps-arrayen och `exhaustive-deps`-varningen försvinner. |
+
+### 12.1b 🔴 Ny bugg upptäckt vid manuell test – överföring kraschade (500)
+
+| Fält | Värde |
+|---|---|
+| Fil | `NexaPay.Domain/Entities/Account.cs` – `TransferTo()` |
+| Symptom | `POST /api/transactions/transfer` returnerade 500. `SqlException`: `Cannot insert the value NULL into column 'Amount', table 'Transactions'`. |
+| Rotorsak | `TransferTo` skapade `fromTransaction` och `toTransaction` med **samma `Money`-instans** (`Amount = amount`). `Money` är en EF Core *owned type* – en owned-instans kan bara tillhöra en ägar-entitet, så EF kopplade den till en transaktion och lämnade den andras `Amount` som NULL. `Deposit`/`Withdraw` drabbades inte (skapar bara en transaktion). |
+| Åtgärd | Varje transaktion får sin egen instans: `Amount = new Money(amount.Amount, amount.Currency)`. |
+| Test | Nytt `NexaPay.Tests/Integration/Transactions/TransactionsIntegrationTests.cs` – `Transfer_BetweenOwnAccounts_Returns200AndMovesBalance` (verifierar 200 + att saldon flyttas) och `Transfer_WithInsufficientBalance_Returns400`. Ingen integrationstest täckte tidigare hela transfer-flödet. |
+| Verifierat | End-to-end mot körande API: 1000 → 700 / 0 → 300. |
+
+### 12.1c 🟡 Rate limiter för aggressiv för dev/test – `financial`-policyn (20/min) blockerade normal användning
+
+| Fält | Värde |
+|---|---|
+| Fil | `NexaPay.API/ServiceExtensions.cs`, `appsettings.json`, `appsettings.Development.json` |
+| Symptom | "För många förfrågningar. Försök igen om en stund." (429) vid normal navigering i Översikt/Överföring. |
+| Rotorsak | `financial`-policyn tillät 20 req/min **per IP** – och i dev delar allt samma IP (localhost). Översikt + Överföring gör flera anrop per sidvisning (mount-laddningar, och Transfer slår upp kontonummer på varje debouncad tangenttryckning), så 20 tog slut på sekunder. |
+| Åtgärd | Gränserna är nu konfigurerbara via `RateLimiting`-sektionen. `appsettings.json` behåller de strikta värdena (auth 5/min, financial 20/min) som default; `appsettings.Development.json` sätter generösa värden (auth 100/min, financial 1000/min). Saknas sektionen faller koden tillbaka på de strikta värdena. |
+| Verifierat | 60 snabba anrop i rad mot `/api/accounts` i dev – alla 200, 0 blockerade. |
+
+### 12.1d ✨ Funktion – personal kan skapa konto åt en kund
+
+| Fält | Värde |
+|---|---|
+| Filer (backend) | `CreateAccountRequest.cs`, `AccountsController.cs` |
+| Filer (frontend) | `src/api/accounts.js`, `src/pages/Dashboard.jsx` |
+| Bakgrund | `AccountsController.Create` hårdkodade `OwnerId = User.GetUserId()` – så även när personal skapade ett konto hamnade det på personalens eget konto. Det fanns ingen väg att skapa ett konto åt en kund. |
+| Åtgärd | `CreateAccountRequest` har nu ett valfritt `OwnerEmail`. Controllern: om `OwnerEmail` anges **och** anroparen är personal → slår upp användaren via `UserManager.FindByEmailAsync` och sätter kontots ägare till den. Vanlig User som anger `OwnerEmail` → 403. Okänd e-post → 400. Tomt fält → kontot skapas åt anroparen (oförändrat beteende). Frontend: skapa-konto-modalen visar ett "Kundens e-post"-fält enbart för personal (`isStaff`). |
+| Tester | 3 nya integrationstester i `AccountsIntegrationTests.cs` – personal skapar åt befintlig kund (verifierar att kunden ser kontot), okänd e-post → 400, vanlig User med `ownerEmail` → 403. |
+| Verifierat | End-to-end: Teller skapade konto med `ownerEmail=user@test.com` → syns i kundens lista; okänd e-post → 400; User med `ownerEmail` → 403. |
+
+### 12.2 Verifiering
+
+| | Resultat |
+|---|---|
+| Backend-tester | ✅ 165/165 (160 + 2 transfer + 3 "skapa åt kund") |
+| Frontend-build | ✅ `npm run build` rent |
+| Frontend-lint | ✅ 0 fel, 0 varningar |
+| Manuell test | ✅ Överföring user→user; personal skapar konto åt kund; rate limiter blockerar inte längre normal testning |

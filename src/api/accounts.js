@@ -8,10 +8,12 @@ export function getAccount(id) {
   return request(`/api/accounts/${id}`, {}, getToken())
 }
 
-export function createAccount(accountName, accountType) {
+export function createAccount(accountName, accountType, ownerEmail) {
+  const body = { accountName, accountType }
+  if (ownerEmail) body.ownerEmail = ownerEmail
   return request('/api/accounts', {
     method: 'POST',
-    body: JSON.stringify({ accountName, accountType }),
+    body: JSON.stringify(body),
   }, getToken())
 }
 
