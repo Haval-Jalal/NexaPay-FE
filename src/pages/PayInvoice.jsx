@@ -1,49 +1,27 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
-import { getAccounts } from '../api/accounts'
 import { payInvoice } from '../api/transactions'
 import { useAuth } from '../context/useAuth'
+import { useAccounts } from '../hooks/useAccounts'
 import { can } from '../utils/roles'
 import { useToast } from '../context/useToast'
-
-// Mod-10 (Luhn) – speglar OcrPolicy i backend för snabb klientfeedback.
-function isValidOcr(ocr) {
-  const v = (ocr ?? '').trim()
-  if (!/^\d{2,25}$/.test(v)) return false
-  let sum = 0
-  let doubleNext = false
-  for (let i = v.length - 1; i >= 0; i--) {
-    let n = v.charCodeAt(i) - 48
-    if (doubleNext) {
-      n *= 2
-      if (n > 9) n -= 9
-    }
-    sum += n
-    doubleNext = !doubleNext
-  }
-  return sum % 10 === 0
-}
+import { formatCurrency } from '../helpers/format'
+import { isValidOcr } from '../helpers/validators'
 
 export default function PayInvoice() {
   const { user } = useAuth()
   const role = user?.role
   const toast = useToast()
 
-  const [accounts, setAccounts]     = useState([])
-  const [form, setForm]             = useState({ fromAccountId: '', bankgiro: '', ocr: '', amount: '', description: '' })
+  const { accounts } = useAccounts({ onlyOpen: true })
+  const [form, setForm] = useState({ fromAccountId: '', bankgiro: '', ocr: '', amount: '', description: '' })
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError]           = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => { document.title = 'Betala faktura – NexaPay' }, [])
 
-  useEffect(() => {
-    if (!can.write(role)) return
-    getAccounts().then(res => {
-      const open = (res.data ?? []).filter(a => a.status === 'Open')
-      setAccounts(open)
-      if (open.length > 0) setForm(f => ({ ...f, fromAccountId: open[0].id }))
-    }).catch(e => setError(e.message))
-  }, [role])
+  // Härlett från-konto: använd valt om finns, annars första kontot.
+  const fromAccountId = form.fromAccountId || accounts[0]?.id || ''
 
   const ocrTouched = form.ocr.trim().length > 0
   const ocrValid   = isValidOcr(form.ocr)
@@ -57,14 +35,15 @@ export default function PayInvoice() {
     }
     setSubmitting(true)
     try {
+      const amount = parseFloat(form.amount)
       await payInvoice(
-        form.fromAccountId,
-        parseFloat(form.amount),
+        fromAccountId,
+        amount,
         form.bankgiro.trim(),
         form.ocr.trim(),
         form.description,
       )
-      toast(`Faktura på ${parseFloat(form.amount).toLocaleString('sv-SE', { style: 'currency', currency: 'SEK' })} betald.`)
+      toast(`Faktura på ${formatCurrency(amount)} betald.`)
       setForm(f => ({ ...f, bankgiro: '', ocr: '', amount: '', description: '' }))
     } catch (e) {
       setError(e.message)
@@ -103,13 +82,13 @@ export default function PayInvoice() {
             <label className="block text-sm text-gray-400 mb-1">Från konto</label>
             <select
               required
-              value={form.fromAccountId}
+              value={fromAccountId}
               onChange={e => setForm({ ...form, fromAccountId: e.target.value })}
               className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition"
             >
               {accounts.map(a => (
                 <option key={a.id} value={a.id}>
-                  {a.accountName} — {a.balance.toLocaleString('sv-SE', { style: 'currency', currency: a.currency || 'SEK' })}
+                  {a.accountName} — {formatCurrency(a.balance, a.currency)}
                 </option>
               ))}
             </select>

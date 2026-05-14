@@ -1,74 +1,90 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
-import { getAccounts, lookupAccount } from '../api/accounts'
+import { lookupAccount } from '../api/accounts'
 import { transfer } from '../api/transactions'
 import { useAuth } from '../context/useAuth'
+import { useAccounts } from '../hooks/useAccounts'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { can } from '../utils/roles'
 import { useToast } from '../context/useToast'
+import { formatCurrency } from '../helpers/format'
 
 export default function Transfer() {
   const { user } = useAuth()
   const role = user?.role
   const toast = useToast()
 
-  const [accounts, setAccounts]       = useState([])
-  const [form, setForm]               = useState({ fromAccountId: '', amount: '', description: '' })
-  const [toNumber, setToNumber]       = useState('')
-  const [recipient, setRecipient]     = useState(null)
-  const [lookupState, setLookupState] = useState('idle')
-  const [submitting, setSubmitting]   = useState(false)
-  const [error, setError]             = useState('')
-  const debounceRef = useRef(null)
+  const { accounts } = useAccounts({ onlyOpen: true })
+  const [form, setForm] = useState({ fromAccountId: '', amount: '', description: '' })
+
+  // Härlett från-konto: använd valt om finns, annars första kontot.
+  // Aldrig setState i effect = ingen onödig rerender och inget lint-fel.
+  const fromAccountId = form.fromAccountId || accounts[0]?.id || ''
+
+  const [toNumber, setToNumber] = useState('')
+  const debouncedNumber = useDebouncedValue(toNumber, 500)
+
+  // Resultatet från senaste lookup – inkl. *vilket värde* det är för
+  // så att vi kan ignorera stale resultat när användaren skriver vidare.
+  const [lookupResult, setLookupResult] = useState({
+    value: '',
+    recipient: null,
+    status: 'idle', // 'idle' | 'found' | 'notfound' | 'error'
+  })
+
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => { document.title = 'Överföring – NexaPay' }, [])
 
   useEffect(() => {
-    if (!can.transfer(role)) return
-    getAccounts().then(res => {
-      const open = (res.data ?? []).filter(a => a.status === 'Open')
-      setAccounts(open)
-      if (open.length > 0) setForm(f => ({ ...f, fromAccountId: open[0].id }))
-    }).catch(e => setError(e.message))
-  }, [role])
+    const val = debouncedNumber.trim()
+    if (!val) return
+    let active = true
+    lookupAccount(val)
+      .then(res => {
+        if (active) setLookupResult({ value: val, recipient: res.data, status: 'found' })
+      })
+      .catch(e => {
+        if (active) setLookupResult({
+          value: val,
+          recipient: null,
+          status: e.status === 404 ? 'notfound' : 'error',
+        })
+      })
+    return () => { active = false }
+  }, [debouncedNumber])
 
-  async function doLookup(val) {
-    if (!val.trim()) { setLookupState('idle'); return }
-    setLookupState('loading')
-    try {
-      const res = await lookupAccount(val.trim())
-      setRecipient(res.data)
-      setLookupState('found')
-    } catch (e) {
-      setLookupState(e.status === 404 ? 'notfound' : 'error')
-    }
-  }
+  // Härled UI-state från råvärdena – ingen synkron setState i effect.
+  const trimmedTo = toNumber.trim()
+  const trimmedDebounced = debouncedNumber.trim()
+  const isPendingDebounce = trimmedTo !== '' && trimmedTo !== trimmedDebounced
+  const resultMatches = lookupResult.value !== '' && lookupResult.value === trimmedDebounced
 
-  function handleToNumberChange(e) {
-    const val = e.target.value
-    setToNumber(val)
-    setRecipient(null)
-    setError('')
-    clearTimeout(debounceRef.current)
-    if (!val.trim()) { setLookupState('idle'); return }
-    setLookupState('loading')
-    debounceRef.current = setTimeout(() => doLookup(val), 500)
-  }
+  const lookupState =
+    trimmedTo === '' ? 'idle' :
+    isPendingDebounce ? 'loading' :
+    resultMatches ? lookupResult.status : 'loading'
+
+  const recipient = resultMatches && lookupResult.status === 'found'
+    ? lookupResult.recipient
+    : null
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!recipient) return
     setError('')
-    if (form.fromAccountId === recipient.id) {
+    if (fromAccountId === recipient.id) {
       setError('Från- och till-konto kan inte vara samma.')
       return
     }
     setSubmitting(true)
     try {
-      await transfer(form.fromAccountId, recipient.id, parseFloat(form.amount), form.description)
-      toast(`Överföring på ${parseFloat(form.amount).toLocaleString('sv-SE', { style: 'currency', currency: 'SEK' })} till ${recipient.accountName} genomförd!`)
+      const amount = parseFloat(form.amount)
+      await transfer(fromAccountId, recipient.id, amount, form.description)
+      toast(`Överföring på ${formatCurrency(amount)} till ${recipient.accountName} genomförd!`)
       setToNumber('')
-      setRecipient(null)
-      setLookupState('idle')
+      setLookupResult({ value: '', recipient: null, status: 'idle' })
       setForm(f => ({ ...f, amount: '', description: '' }))
     } catch (e) {
       setError(e.message)
@@ -77,7 +93,7 @@ export default function Transfer() {
     }
   }
 
-  const fromAccount = accounts.find(a => a.id === form.fromAccountId)
+  const fromAccount = accounts.find(a => a.id === fromAccountId)
 
   if (!can.transfer(role)) {
     return (
@@ -109,13 +125,13 @@ export default function Transfer() {
             <label className="block text-sm text-gray-400 mb-1">Från konto</label>
             <select
               required
-              value={form.fromAccountId}
+              value={fromAccountId}
               onChange={e => setForm({ ...form, fromAccountId: e.target.value })}
               className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition"
             >
               {accounts.map(a => (
                 <option key={a.id} value={a.id}>
-                  {a.accountName} — {a.balance.toLocaleString('sv-SE', { style: 'currency', currency: a.currency || 'SEK' })}
+                  {a.accountName} — {formatCurrency(a.balance, a.currency)}
                 </option>
               ))}
             </select>
@@ -130,7 +146,7 @@ export default function Transfer() {
             <input
               required
               value={toNumber}
-              onChange={handleToNumberChange}
+              onChange={e => setToNumber(e.target.value)}
               placeholder="T.ex. SE1234567890"
               className={`w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border transition focus:outline-none
                 ${lookupState === 'found'    ? 'border-green-500 focus:border-green-500' :
@@ -154,16 +170,7 @@ export default function Transfer() {
               <p className="text-xs text-red-400 mt-1">Inget konto hittades med det numret.</p>
             )}
             {lookupState === 'error' && (
-              <div className="mt-1 flex items-center gap-3">
-                <p className="text-xs text-red-400">Sökningen misslyckades. Kontrollera anslutningen.</p>
-                <button
-                  type="button"
-                  onClick={() => doLookup(toNumber)}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 transition shrink-0"
-                >
-                  Försök igen
-                </button>
-              </div>
+              <p className="text-xs text-red-400 mt-1">Sökningen misslyckades. Kontrollera anslutningen.</p>
             )}
           </div>
 

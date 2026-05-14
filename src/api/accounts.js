@@ -1,34 +1,31 @@
-import { request, getToken } from './client'
+import api from './client'
 
 export function getAccounts() {
-  return request('/api/accounts', {}, getToken())
+  return api.get('/api/accounts')
 }
 
 export function getAccount(id) {
-  return request(`/api/accounts/${id}`, {}, getToken())
+  return api.get(`/api/accounts/${id}`)
 }
 
 export function createAccount(accountName, accountType, ownerEmail) {
   const body = { accountName, accountType }
   if (ownerEmail) body.ownerEmail = ownerEmail
-  return request('/api/accounts', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  }, getToken())
+  return api.post('/api/accounts', body)
 }
 
 export function freezeAccount(id) {
-  return request(`/api/accounts/${id}/freeze`, { method: 'PUT' }, getToken())
+  return api.put(`/api/accounts/${id}/freeze`)
 }
 
 export function unfreezeAccount(id) {
-  return request(`/api/accounts/${id}/unfreeze`, { method: 'PUT' }, getToken())
+  return api.put(`/api/accounts/${id}/unfreeze`)
 }
 
 export function deleteAccount(id) {
-  return request(`/api/accounts/${id}`, { method: 'DELETE' }, getToken())
+  return api.delete(`/api/accounts/${id}`)
 }
 
 export function lookupAccount(accountNumber) {
-  return request(`/api/accounts/lookup?number=${encodeURIComponent(accountNumber)}`, {}, getToken())
+  return api.get('/api/accounts/lookup', { params: { number: accountNumber } })
 }

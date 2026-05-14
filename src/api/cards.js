@@ -1,28 +1,22 @@
-import { request, getToken } from './client'
+import api from './client'
 
 export function getCardsByAccount(accountId) {
-  return request(`/api/cards/account/${accountId}`, {}, getToken())
+  return api.get(`/api/cards/account/${accountId}`)
 }
 
 // Svaret innehåller fullt kortnummer och CVV – visas bara en gång.
 export function createCard(accountId, cardHolderName) {
-  return request('/api/cards', {
-    method: 'POST',
-    body: JSON.stringify({ accountId, cardHolderName }),
-  }, getToken())
+  return api.post('/api/cards', { accountId, cardHolderName })
 }
 
 export function activateCard(id) {
-  return request(`/api/cards/${id}/activate`, { method: 'PUT' }, getToken())
+  return api.put(`/api/cards/${id}/activate`)
 }
 
 export function blockCard(id, reason) {
-  return request(`/api/cards/${id}/block`, {
-    method: 'PUT',
-    body: JSON.stringify({ reason }),
-  }, getToken())
+  return api.put(`/api/cards/${id}/block`, { reason })
 }
 
 export function unblockCard(id) {
-  return request(`/api/cards/${id}/unblock`, { method: 'PUT' }, getToken())
+  return api.put(`/api/cards/${id}/unblock`)
 }

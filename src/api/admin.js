@@ -1,17 +1,14 @@
-import { request, getToken } from './client'
+import api from './client'
 
 // Alla endpoints kräver Admin-rollen. Personalroller kräver @nexapay.com-epost.
 export function adminCreateUser(email, password, role) {
-  return request('/api/admin/users', {
-    method: 'POST',
-    body: JSON.stringify({ email, password, role }),
-  }, getToken())
+  return api.post('/api/admin/users', { email, password, role })
 }
 
 export function listUsers() {
-  return request('/api/admin/users', {}, getToken())
+  return api.get('/api/admin/users')
 }
 
 export function deleteUser(id) {
-  return request(`/api/admin/users/${id}`, { method: 'DELETE' }, getToken())
+  return api.delete(`/api/admin/users/${id}`)
 }
