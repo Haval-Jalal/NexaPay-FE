@@ -23,22 +23,20 @@ export default function Dashboard() {
   const [search, setSearch]         = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm]             = useState({ accountName: '', accountType: 'Checking' })
+  const [form, setForm]             = useState({ accountName: '', accountType: 'Checking', ownerEmail: '' })
   const [creating, setCreating]     = useState(false)
   const [createError, setCreateError] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  async function loadAccounts() {
-    try {
-      const res = await getAccounts()
-      setAccounts(res.data ?? [])
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  useEffect(() => {
+    let active = true
+    getAccounts()
+      .then(res => { if (active) setAccounts(res.data ?? []) })
+      .catch(e => { if (active) setError(e.message) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [refreshKey])
 
-  useEffect(() => { loadAccounts() }, [])
   useEffect(() => { document.title = 'Översikt – NexaPay' }, [])
 
   async function handleCreate(e) {
@@ -46,10 +44,10 @@ export default function Dashboard() {
     setCreateError('')
     setCreating(true)
     try {
-      await createAccount(form.accountName, form.accountType)
+      await createAccount(form.accountName, form.accountType, isStaff ? form.ownerEmail.trim() : undefined)
       setShowCreate(false)
-      setForm({ accountName: '', accountType: 'Checking' })
-      loadAccounts()
+      setForm({ accountName: '', accountType: 'Checking', ownerEmail: '' })
+      setRefreshKey(k => k + 1)
     } catch (e) {
       setCreateError(e.message)
     } finally {
@@ -222,6 +220,19 @@ export default function Dashboard() {
                 <option value="ISK">ISK</option>
               </select>
             </div>
+            {isStaff && (
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Kundens e-post (valfritt)</label>
+                <input
+                  type="email"
+                  value={form.ownerEmail}
+                  onChange={e => setForm({ ...form, ownerEmail: e.target.value })}
+                  placeholder="Lämna tomt för att skapa åt dig själv"
+                  className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 border border-gray-700 focus:outline-none focus:border-indigo-500 transition"
+                />
+                <p className="text-xs text-gray-500 mt-1">Anges en e-post skapas kontot åt den användaren.</p>
+              </div>
+            )}
             <button
               type="submit"
               disabled={creating}

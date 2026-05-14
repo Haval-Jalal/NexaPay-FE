@@ -5,7 +5,10 @@ import AuthLayout from '../components/AuthLayout'
 
 export default function ConfirmEmail() {
   const [searchParams] = useSearchParams()
-  const [status, setStatus] = useState('loading')
+  const userId = searchParams.get('userId')
+  const token  = searchParams.get('token')
+
+  const [status, setStatus] = useState(userId && token ? 'loading' : 'pending')
   const [error, setError]   = useState('')
   const hasRun = useRef(false)
 
@@ -15,13 +18,7 @@ export default function ConfirmEmail() {
     if (hasRun.current) return
     hasRun.current = true
 
-    const userId = searchParams.get('userId')
-    const token  = searchParams.get('token')
-
-    if (!userId || !token) {
-      setStatus('pending')
-      return
-    }
+    if (!userId || !token) return
 
     confirmEmail(userId, token)
       .then(() => setStatus('success'))
@@ -29,7 +26,7 @@ export default function ConfirmEmail() {
         setStatus('error')
         setError(err.message)
       })
-  }, [searchParams])
+  }, [userId, token])
 
   return (
     <AuthLayout>
