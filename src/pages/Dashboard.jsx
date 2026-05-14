@@ -2,40 +2,33 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Modal from '../components/Modal'
-import { getAccounts, createAccount } from '../api/accounts'
+import { createAccount } from '../api/accounts'
 import { useAuth } from '../context/useAuth'
+import { useAccounts } from '../hooks/useAccounts'
 import { can } from '../utils/roles'
-
-const TYPE_LABELS  = { Checking: 'Lönekonto', Savings: 'Sparkonto', ISK: 'ISK' }
-const STATUS_LABELS = { Open: 'Öppen', Frozen: 'Fryst', Closed: 'Stängd' }
-const STATUS_COLORS = { Open: 'text-green-400', Frozen: 'text-blue-400', Closed: 'text-red-400' }
-const TYPE_BAR      = { Checking: 'bg-green-500', Savings: 'bg-blue-500', ISK: 'bg-purple-500' }
+import { formatCurrency } from '../helpers/format'
+import {
+  ACCOUNT_TYPE_LABELS,
+  ACCOUNT_TYPE_BAR,
+  ACCOUNT_STATUS_LABELS,
+  ACCOUNT_STATUS_COLORS,
+  labelOf,
+} from '../helpers/labels'
 
 export default function Dashboard() {
-  const navigate       = useNavigate()
-  const { user }       = useAuth()
-  const role           = user?.role
-  const isStaff        = can.isStaff(role)
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const role = user?.role
+  const isStaff = can.isStaff(role)
 
-  const [accounts, setAccounts]     = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState('')
-  const [search, setSearch]         = useState('')
+  const { accounts, loading, error, refetch } = useAccounts()
+
+  const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm]             = useState({ accountName: '', accountType: 'Checking', ownerEmail: '' })
-  const [creating, setCreating]     = useState(false)
+  const [form, setForm] = useState({ accountName: '', accountType: 'Checking', ownerEmail: '' })
+  const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  useEffect(() => {
-    let active = true
-    getAccounts()
-      .then(res => { if (active) setAccounts(res.data ?? []) })
-      .catch(e => { if (active) setError(e.message) })
-      .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
-  }, [refreshKey])
 
   useEffect(() => { document.title = 'Översikt – NexaPay' }, [])
 
@@ -47,7 +40,7 @@ export default function Dashboard() {
       await createAccount(form.accountName, form.accountType, isStaff ? form.ownerEmail.trim() : undefined)
       setShowCreate(false)
       setForm({ accountName: '', accountType: 'Checking', ownerEmail: '' })
-      setRefreshKey(k => k + 1)
+      refetch()
     } catch (e) {
       setCreateError(e.message)
     } finally {
@@ -82,7 +75,7 @@ export default function Dashboard() {
               <p className="text-gray-400 text-sm mt-1">
                 Totalt saldo (öppna konton):{' '}
                 <span className="text-white font-semibold">
-                  {totalBalance.toLocaleString('sv-SE', { style: 'currency', currency: 'SEK' })}
+                  {formatCurrency(totalBalance)}
                 </span>
               </p>
             )}
@@ -144,7 +137,7 @@ export default function Dashboard() {
                 onClick={() => navigate(`/accounts/${account.id}`)}
                 className="relative text-left bg-gray-900 border border-gray-800 rounded-2xl p-5 pl-6 hover:border-gray-700 transition overflow-hidden"
               >
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${TYPE_BAR[account.accountType] ?? 'bg-indigo-500'} rounded-l-2xl`} />
+                <div className={`absolute left-0 top-0 bottom-0 w-1 ${ACCOUNT_TYPE_BAR[account.accountType] ?? 'bg-indigo-500'} rounded-l-2xl`} />
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-semibold text-white">{account.accountName}</p>
@@ -155,15 +148,15 @@ export default function Dashboard() {
                       </p>
                     )}
                   </div>
-                  <span className={`text-xs font-medium ${STATUS_COLORS[account.status] ?? 'text-gray-400'}`}>
-                    {STATUS_LABELS[account.status] ?? account.status}
+                  <span className={`text-xs font-medium ${ACCOUNT_STATUS_COLORS[account.status] ?? 'text-gray-400'}`}>
+                    {labelOf(ACCOUNT_STATUS_LABELS, account.status)}
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-white">
-                  {account.balance.toLocaleString('sv-SE', { style: 'currency', currency: account.currency || 'SEK' })}
+                  {formatCurrency(account.balance, account.currency)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {TYPE_LABELS[account.accountType] ?? account.accountType}
+                  {labelOf(ACCOUNT_TYPE_LABELS, account.accountType)}
                 </p>
               </button>
             ))}
