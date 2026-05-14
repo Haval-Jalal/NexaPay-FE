@@ -1,41 +1,41 @@
-import { request, getToken } from './client'
+import api from './client'
+
+const idempotencyHeader = () => ({ 'Idempotency-Key': crypto.randomUUID() })
 
 export function getTransactions(accountId, page = 1, pageSize = 20) {
-  return request(
-    `/api/transactions/account/${accountId}?page=${page}&pageSize=${pageSize}`,
-    {},
-    getToken()
-  )
+  return api.get(`/api/transactions/account/${accountId}`, {
+    params: { page, pageSize },
+  })
 }
 
 export function deposit(accountId, amount, description) {
-  return request('/api/transactions/deposit', {
-    method: 'POST',
-    body: JSON.stringify({ accountId, amount, description }),
-    headers: { 'Idempotency-Key': crypto.randomUUID() },
-  }, getToken())
+  return api.post(
+    '/api/transactions/deposit',
+    { accountId, amount, description },
+    { headers: idempotencyHeader() }
+  )
 }
 
 export function withdraw(accountId, amount, description) {
-  return request('/api/transactions/withdraw', {
-    method: 'POST',
-    body: JSON.stringify({ accountId, amount, description }),
-    headers: { 'Idempotency-Key': crypto.randomUUID() },
-  }, getToken())
+  return api.post(
+    '/api/transactions/withdraw',
+    { accountId, amount, description },
+    { headers: idempotencyHeader() }
+  )
 }
 
 export function transfer(fromAccountId, toAccountId, amount, description) {
-  return request('/api/transactions/transfer', {
-    method: 'POST',
-    body: JSON.stringify({ fromAccountId, toAccountId, amount, description }),
-    headers: { 'Idempotency-Key': crypto.randomUUID() },
-  }, getToken())
+  return api.post(
+    '/api/transactions/transfer',
+    { fromAccountId, toAccountId, amount, description },
+    { headers: idempotencyHeader() }
+  )
 }
 
 export function payInvoice(accountId, amount, bankgiro, ocr, description) {
-  return request('/api/transactions/invoice-payment', {
-    method: 'POST',
-    body: JSON.stringify({ accountId, amount, bankgiro, ocr, description }),
-    headers: { 'Idempotency-Key': crypto.randomUUID() },
-  }, getToken())
+  return api.post(
+    '/api/transactions/invoice-payment',
+    { accountId, amount, bankgiro, ocr, description },
+    { headers: idempotencyHeader() }
+  )
 }
