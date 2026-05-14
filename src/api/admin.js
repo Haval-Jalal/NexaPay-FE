@@ -1,16 +1,6 @@
-// ============================================================
-// admin.js – src/api
-// ============================================================
-// API-anrop för admin-funktioner.
-// Alla endpoints här kräver Admin-rollen.
-// ============================================================
-
-// Importera request och token-hämtare från klienten
 import { request, getToken } from './client'
 
-// Skapa en ny användare med valfri roll
-// Personalroller (Admin, BankManager, Teller, Auditor) kräver @nexapay.com-epost
-// role = 'User' | 'Teller' | 'Auditor' | 'BankManager' | 'Admin'
+// Alla endpoints kräver Admin-rollen. Personalroller kräver @nexapay.com-epost.
 export function adminCreateUser(email, password, role) {
   return request('/api/admin/users', {
     method: 'POST',

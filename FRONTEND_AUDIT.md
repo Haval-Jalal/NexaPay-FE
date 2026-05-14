@@ -587,3 +587,62 @@ Alla 10 best practices är i grunden uppfyllda. Fyra förbättringspunkter hitta
 | BP-2 | `src/api/*.js`, `ProtectedRoute.jsx` | Pedagogiska kommentarer inte rensade | 🟠 |
 | BP-3 | `App.jsx` + `Layout.jsx` | Dubbel fade-in-animation på skyddade sidor | 🟠 |
 | BP-4 | `AuthContext.jsx` | `eslint-disable-line` utan förklarande kommentar | 🟠 |
+
+---
+
+## 11. Audit-uppföljning – åtgärder i branch `fix/audit-followup`
+
+> Genomförd 2026-05-14. Hela avsnitt 9 + 10 verifierades mot faktisk kod i båda repos.
+> Resultat: alla skarpa buggar åtgärdade, flera MD-påståenden korrigerade, två
+> förbefintliga problem upptäckta.
+
+### 11.1 Korrigeringar av tidigare MD-påståenden
+
+| Påstående | Verkligt läge |
+|---|---|
+| Avs. 7 #2 / Avs. 9 #2 "Transfer – åtgärdat" | `setSuccess('')` låg kvar i `Transfer.jsx` och kastade `ReferenceError` vid varje tangenttryck i kontonummerfältet. Nu **faktiskt** borttaget. |
+| Avs. 9 #3 "SMTP faller tillbaka till `LoggingNotificationService`" | Fel. `DependencyInjection.cs` registrerar `SmtpNotificationService`. Kodkommentaren var inaktuell – nu rättad. |
+| Avs. 9 #3 "creds är tomma strängar" | `appsettings.json` (prod) var tom – men `appsettings.Development.json` hade riktiga Gmail-uppgifter. Filen är dock gitignored och uppgifterna har **aldrig committats** (verifierat i git-historiken). Blankade lokalt ändå. |
+| Avs. 9 #6 "429 visar 'Serverfel (429)'" | Överdrivet. Backend returnerar redan ett läsbart svenskt meddelande som `client.js` surfar upp. Ingen åtgärd behövdes. |
+
+### 11.2 Backend-åtgärder
+
+| # | Fil | Åtgärd |
+|---|---|---|
+| #1 | `AuthController.cs` | Register-endpointen returnerar nu hela `AuthDto` (inte `{ Email }`) så `requiresEmailConfirmation` når frontend – registreringsflödet fungerar |
+| #4 | `NexaPay.Domain.csproj` | MediatR 12.4.0 → 14.1.0 (matchar Application) |
+| #5 | `DependencyInjection.cs` | Inaktuell kommentar om notification service rättad |
+| #3 | `appsettings.Development.json` | Gmail-uppgifter blankade lokalt (gitignored fil, aldrig committad) |
+
+### 11.3 Frontend-åtgärder
+
+| # | Fil(er) | Åtgärd |
+|---|---|---|
+| #2 | `Transfer.jsx` | `setSuccess`-kraschen borttagen |
+| #7 | `client.js`, `Transfer.jsx` | `client.js` sätter `error.status`; 404-detektering via `e.status === 404` istället för strängmatchning |
+| #5 | `.env.development`, `.env.production` | Skapade (`.gitignore` täckte redan `*.local`) |
+| BP-1 | `AccountDetail.jsx`, `Transfer.jsx` | Tysta catch-block → inline-felmeddelanden |
+| BP-2 | `api/*.js`, `ProtectedRoute.jsx`, `Modal.jsx` | Pedagogiska kommentarer rensade |
+| BP-3 | `App.jsx` | Dubbel `animate-fade-in`-wrapper borttagen |
+| BP-4 | `AuthContext.jsx` | Effekten omskriven utan reaktiva deps → `eslint-disable` borttagen |
+| — | `roles.js` | Död kod `can.viewAll` borttagen |
+| — | `AuthContext.jsx` + nya `useAuth.js`, `ToastContext.jsx` + nya `useToast.js` | Context-filerna splittrade: `.jsx` exporterar bara providern, hook + context-objekt i egen `.js`-fil → löser `react-refresh/only-export-components` |
+
+### 11.4 Upptäckta förbefintliga problem (ej i avsnitt 9/10)
+
+**Åtgärdat:**
+- **`NexaPay.Tests` byggde inte** – 6× CS0854 i `RegisterHandlerTests.cs`. `IAuthService.RegisterAsync` fick en 4:e valfri parameter men Moq-anropen skickade 3 argument (expression trees tillåter inte utelämnade valfria args). Doldes av fil-låsfel i tidigare builds. Fixat med `It.IsAny<bool>()`.
+
+**Ej åtgärdat – kräver beslut:**
+- **2 integrationstester faller** – `AdminCreateUser_WithValidStaffRole_Returns200` och `AdminCreateUser_StaffRoleWithExternalEmail_Returns400`. Rotorsak: testhjälparen `CreateAndLoginAsAdminAsync` använder hårdkodad e-post `admin@nexapay.com` som krockar med en seed-användare (annat lösenord) → login 401 → `KeyNotFoundException`. Förbefintligt, doldes av CS0854-bygget. Föreslagen fix: unik e-post per anrop.
+- **`npm run lint` – 4 kvarvarande fel** – `react-hooks/set-state-in-effect` i `Dashboard`, `Admin`, `ConfirmEmail`, `AccountDetail`. Standardmönstret "ladda data vid mount". Lämnade orörda (regelns stränghet är diskutabel).
+
+### 11.5 Verifiering
+
+| | Resultat |
+|---|---|
+| Backend-build | ✅ Hela solutionen 0/0 |
+| Backend-tester | ✅ 158/160 (2 förbefintliga fel enligt 11.4) |
+| Frontend-build | ✅ `npm run build` rent |
+| Frontend-lint | 4 förbefintliga fel kvar (11.4); 2 åtgärdade via context-split |
+| Manuell körning | ✅ Backend `:5190`, frontend `:5173` – bekräftat fungerande |

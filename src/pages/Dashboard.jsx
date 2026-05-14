@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Modal from '../components/Modal'
 import { getAccounts, createAccount } from '../api/accounts'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { can } from '../utils/roles'
 
 const TYPE_LABELS  = { Checking: 'Lönekonto', Savings: 'Sparkonto', ISK: 'ISK' }

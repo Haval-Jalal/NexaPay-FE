@@ -1,8 +1,6 @@
-/* @refresh reset */
-import { createContext, useContext, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { logout as apiLogout, getMe } from '../api/auth'
-
-const AuthContext = createContext(null)
+import { AuthContext } from './useAuth'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -10,14 +8,17 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null
   })
 
-  // Synka roll och e-post från servern vid app-start
-  // Fångar upp rolländringar gjorda av Admin utan att användaren behöver logga ut
+  // Synka roll och e-post från servern vid app-start. Läser localStorage
+  // direkt (inte user-state) så effekten saknar reaktiva beroenden och
+  // bara körs vid mount.
   useEffect(() => {
-    if (!user?.token) return
+    const stored = localStorage.getItem('nexapay_user')
+    const current = stored ? JSON.parse(stored) : null
+    if (!current?.token) return
     getMe()
       .then(res => {
         if (!res?.data?.email || !res?.data?.role) return
-        const updated = { ...user, email: res.data.email, role: res.data.role }
+        const updated = { ...current, email: res.data.email, role: res.data.role }
         localStorage.setItem('nexapay_user', JSON.stringify(updated))
         setUser(updated)
       })
@@ -26,7 +27,7 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('nexapay_user')
         setUser(null)
       })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   function saveUser(data) {
     localStorage.setItem('nexapay_user', JSON.stringify(data))
@@ -44,8 +45,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  return useContext(AuthContext)
 }
