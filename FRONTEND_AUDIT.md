@@ -703,3 +703,71 @@ Alla 10 best practices är i grunden uppfyllda. Fyra förbättringspunkter hitta
 | Frontend-build | ✅ `npm run build` rent |
 | Frontend-lint | ✅ 0 fel, 0 varningar |
 | Manuell test | ✅ Överföring user→user; personal skapar konto åt kund; rate limiter blockerar inte längre normal testning |
+
+---
+
+## 13. Lärarens feedback – fix/teacher-feedback-branchen
+
+> Lärare "Nemo Sensei" levererade en detaljerad granskning. Två iterationer i samma branch (`fix/teacher-feedback`):
+> Iteration 1 implementerade lärarens "top 5" (#1–#5). Iteration 2 fortsätter med resten av Phase 1 + 2 + 3.
+
+### 13.1 Phase 1 Critical – allt åtgärdat utom Testcontainers
+
+| # | Punkt | Status |
+|---|---|---|
+| 1 | `SeedUsersAsync` körs alltid | ✅ Gateat bakom `app.Environment.IsDevelopment()` i `DatabaseExtensions.cs` |
+| 2 | Rate limit-undantag på `forgot/reset/confirm/change-password` | ✅ `[DisableRateLimiting]` borttaget – `"auth"`-policyn gäller nu |
+| 3 | Idempotency-race ger 500 | ✅ `UnitOfWork` översätter `DbUpdateException` på unikt index → `IdempotencyConflictException`; alla 4 handlers fångar och returnerar vinnaren |
+| 4 | Idempotency-key globalt unik (privacy leak) | ✅ Composite unique index `(IdempotencyKey, AccountId)`; lookup scopad till kontot |
+| 5 | Sync Redis I/O i JWT-validering | ✅ `ITokenDenylist` är helt async; `OnTokenValidated` await:ar |
+| 6 | Domain events firar utanför DB-transaktionen | ✅ **Outbox-mönster**: `OutboxEvent`-tabell, events serialiseras in i samma transaktion som aggregatet, `OutboxDispatcher` (BackgroundService) plockar oprocessade rader och publicerar via MediatR i bakgrunden |
+| 7 | Mottagaren av en överföring notifieras inte | ✅ Nytt `MoneyReceived`-event raise:as på mottagar-aggregatet i `Account.TransferTo`; nytt `MoneyReceivedHandler` skickar notifiering |
+| 8 | Integrationstester använder EF InMemory | ⏳ **Skippat** – Testcontainers kräver Docker hos alla utvecklare, byter hela test-infra (lärarens estimat 6h) |
+
+### 13.2 Phase 2 Important – nästan allt åtgärdat
+
+| # | Punkt | Status |
+|---|---|---|
+| 1 | MediatR läcker in i Domain | ✅ `IDomainEvent` är plain marker i Domain (inga NuGet-deps); Application har `DomainEventNotification<T>` som lindar events innan dispatch |
+| 2 | `AdminController.GetUsers` är N+1 + sync | ✅ Async (`.ToListAsync`), enstaka JOIN-query mot UserRoles+Roles, paginerad via `page`/`pageSize` |
+| 3 | Admin kan ta bort sig själv / sista admin | ✅ Båda blockerade i `DeleteUser` (400 BadRequest) |
+| 4 | Lockout-meddelande läcker email-existens | ✅ Uniform `GenericFailure`-konstant i `LoginAsync` – ingen skillnad på okänt konto, låst eller obekräftat |
+| 5 | JWT 24h utan refresh tokens | ⏳ **Skippat** – ny tabell + endpoint + frontend-integration (8h) |
+| 6 | Card saknar RowVersion och har public setters | ✅ Privata setters; `Card.Issue()`-fabrik; `RowVersion`-property + `IsRowVersion()` i config; EF-migration |
+| 7 | `AuditBehavior`/`ValidationBehavior` reflection för UserId | ⏳ **Delvis** – ICommand/IUserScopedRequest-interfaces skippade (touchar 15+ command-filer för liten värde); reflection behålls |
+| 8 | `ConcurrencyRetryBehavior` körs även på queries | ✅ Skip på `typeof(TRequest).Name.EndsWith("Query")` |
+| 9 | Egen JSON-shape i `ExceptionMiddleware` | ✅ `ProblemDetails`/`ValidationProblemDetails` (RFC 7807) – content-type `application/problem+json` |
+| 10 | CORS är `AllowAnyMethod` + `AllowAnyHeader` | ✅ Snäv lista: `WithMethods("GET","POST","PUT","DELETE","OPTIONS")` + `WithHeaders("Content-Type","Authorization","Idempotency-Key","X-API-Version")` |
+| 11 | Ingen strukturerad loggning / correlation ID | ✅ Serilog + Console-sink konfigurerad i `Program.cs`; `CorrelationIdMiddleware` pushar `X-Correlation-Id` till `LogContext` och ekar tillbaka i svaret; `UseSerilogRequestLogging` ger en rad per request |
+
+### 13.3 Phase 3 Polish
+
+| Punkt | Status |
+|---|---|
+| Dela `ServiceExtensions.cs` i mindre filer | ⏳ Skippat – organisatoriskt, ingen funktionsvinst |
+| Ta bort tom `IRepository.cs`-stub | ✅ Borttagen |
+| Lägg till `CardTests.cs` | ⏳ Skippat – Card täcks via `ActivateCardHandlerTests`, `BlockCardHandlerTests`, `CreateCardHandlerTests` |
+| Typed `[FromHeader]` för Idempotency-Key | ✅ Alla 4 transaktions-endpoints (`Deposit`/`Withdraw`/`Transfer`/`PayInvoice`); `GetIdempotencyKey()`-helpern borttagen |
+| Polly resilience på SMTP + Redis | ⏳ Skippat – kräver flaky-infra för att ge värde |
+| OpenTelemetry tracing/metrics | ⏳ Skippat – kräver collector (Jaeger/OTLP) för att vara meningsfull |
+| DataProtection-on-Redis | ⏳ Skippat – bara relevant vid multi-instance |
+
+### 13.4 Paket-rekommendationer
+
+| Paket | Status |
+|---|---|
+| MediatR ur Domain | ✅ Borttaget från `Domain.csproj` |
+| FluentAssertions 8 → 7.2.0 | ✅ Pinned (kommersiell licens i 8+) |
+| AutoMapper 16 → Mapster | ⏳ Skippat – mekanisk migration av alla mappnings-filer, låg värde för skoluppgift |
+| Moq → NSubstitute | ⏳ Skippat – mekanisk omskrivning av alla mock-setups |
+| Swashbuckle → Microsoft.AspNetCore.OpenApi | ⏳ Skippat – fungerar bra, byte är optional |
+| Serilog | ✅ Tillagt (`Serilog.AspNetCore` 8.0.3) |
+
+### 13.5 Verifiering
+
+| | Resultat |
+|---|---|
+| Backend-build | ✅ Hela solutionen 0 fel, 0 warnings |
+| Backend-tester | ✅ 218/218 |
+| Migrationer | 2 nya: `CardRowVersion`, `Outbox` (utöver `IdempotencyKeyPerAccount` från förra branchen) |
+| Kvar utanför scope | #8 Testcontainers · #5 Refresh tokens · #7 marker interfaces (partial) · Polly · OpenTelemetry · DataProtection-Redis · AutoMapper→Mapster · Moq→NSubstitute · Swashbuckle→OpenApi · split ServiceExtensions · CardTests |
