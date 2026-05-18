@@ -4,6 +4,16 @@
 // Exponerar en `toast(message, type)`-funktion via useToast()
 // som visar en flytande notifikation längst ned till höger i
 // 4 sekunder. Stöder 'success' (default, grön) och 'error' (röd).
+//
+// KONVENTION i appen (varför ibland toast, ibland inline):
+//   * Formulär-submit → INLINE-banner med role="alert" överst i
+//     form-elementet. Felet hör ihop med formuläret användaren
+//     just skickade och måste vara läsbart tills hen rättar det.
+//   * Knapp-/icon-actions (utanför formulär) → TOAST. Det finns
+//     ingen självklar plats för inline-fel och åtgärden är klar
+//     när användaren klickat.
+//   * Lyckat resultat → ALLTID toast (försvinner av sig själv).
+//   * Sidladdnings-fel → sid-level fallback (egen render-gren).
 // ============================================================
 
 import { useState, useCallback } from 'react'
@@ -21,7 +31,12 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+      >
         {toasts.map(t => (
           <div
             key={t.id}
