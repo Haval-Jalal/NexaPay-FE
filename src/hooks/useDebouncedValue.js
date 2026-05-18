@@ -1,3 +1,11 @@
+// ============================================================
+// hooks/useDebouncedValue.js – fördröjt värde
+// ============================================================
+// Användbart för live-sökfält där vi inte vill skicka ett API-anrop
+// vid varje tangenttryckning. Transfer-sidans kontonummer-sökning
+// debounce:ar t.ex. inmatningen i 400 ms innan lookup-anropet körs.
+// ============================================================
+
 import { useState, useEffect } from 'react'
 
 // Returnerar `value` fördröjt med `delay` ms. Reset:ar timern vid varje ny inmatning.

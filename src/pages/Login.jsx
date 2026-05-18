@@ -1,3 +1,12 @@
+// ============================================================
+// pages/Login.jsx – inloggningssidan
+// ============================================================
+// Skickar email + password till POST /api/auth/login.
+// Vid lyckad inloggning sparas { token, email, role, expiresAt }
+// i AuthContext (som persisterar i localStorage). Felmeddelandet
+// från backend visas inline – inga alert()-popups.
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login } from '../api/auth'

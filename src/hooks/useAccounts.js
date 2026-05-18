@@ -1,3 +1,11 @@
+// ============================================================
+// hooks/useAccounts.js – domän-specifik wrapper runt useFetch
+// ============================================================
+// Inkapslar GET /api/accounts + valfri filtrering på status.
+// Anropas av Dashboard, Transfer och PayInvoice som annars skulle
+// duplicera samma fetch+filter-logik.
+// ============================================================
+
 import { useMemo } from 'react'
 import { getAccounts } from '../api/accounts'
 import { useFetch } from './useFetch'

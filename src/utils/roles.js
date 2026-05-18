@@ -1,3 +1,15 @@
+// ============================================================
+// utils/roles.js – frontend-spegling av backend-RBAC
+// ============================================================
+// Backend gör den autoritativa kontrollen – men UI behöver veta
+// vilka knappar/sidor som ska visas/döljas för respektive roll.
+// `can.*`-funktionerna håller all rollogik på ETT ställe så att
+// vi inte duplicerar listor i komponenterna.
+//
+// Tabellen MÅSTE matcha NexaPay.Application.Common.Constants.Roles
+// och de [Authorize(Roles=…)]-attribut som finns på controllers.
+// ============================================================
+
 // Rollkonstanter och hjälpfunktioner för behörighetskontroll i UI
 export const ROLES = {
   Admin:       'Admin',

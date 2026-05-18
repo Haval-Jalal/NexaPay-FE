@@ -1,3 +1,11 @@
+// ============================================================
+// api/admin.js – endpoint-wrappers för /api/admin/*
+// ============================================================
+// Endast Admin får anropa dessa endpoints. Backend tvingar dessutom
+// att personalroller (BankManager/Teller/Auditor) registreras med
+// en @nexapay.com-e-post (StaffEmailPolicy).
+// ============================================================
+
 import api from './client'
 
 // Alla endpoints kräver Admin-rollen. Personalroller kräver @nexapay.com-epost.

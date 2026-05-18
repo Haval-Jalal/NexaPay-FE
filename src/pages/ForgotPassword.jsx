@@ -1,3 +1,12 @@
+// ============================================================
+// pages/ForgotPassword.jsx – begär lösenordsåterställning
+// ============================================================
+// Skickar e-postadress till POST /api/auth/forgot-password.
+// Backend returnerar ALLTID 200 (även för okänd e-post) för att
+// inte avslöja vilka adresser som är registrerade – så UI:t visar
+// alltid samma bekräftelse "kolla din inkorg".
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { forgotPassword } from '../api/auth'

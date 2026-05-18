@@ -1,3 +1,12 @@
+// ============================================================
+// api/transactions.js – endpoint-wrappers för /api/transactions/*
+// ============================================================
+// Alla muterande anrop (deposit/withdraw/transfer/pay-invoice)
+// skickar automatiskt med en `Idempotency-Key`-header med en
+// fräsch UUID. Skyddar mot att en användare som klickar två gånger
+// (eller en flaky-nät-retry) skapar dubbla transaktioner.
+// ============================================================
+
 import api from './client'
 
 const idempotencyHeader = () => ({ 'Idempotency-Key': crypto.randomUUID() })

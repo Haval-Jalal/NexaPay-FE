@@ -1,3 +1,11 @@
+// ============================================================
+// components/ConfirmModal.jsx – snygg ja/nej-dialog
+// ============================================================
+// Ersätter window.confirm() med en kontextkänslig modal som
+// stylas konsekvent. Färgklassen för Bekräfta-knappen kan bytas
+// till t.ex. röd (för destruktiva åtgärder som stänga konto).
+// ============================================================
+
 // Bekräftelsedialog som ersätter webbläsarens inbyggda confirm()
 export default function ConfirmModal({ title, message, confirmLabel = 'Bekräfta', confirmClass = 'bg-red-600 hover:bg-red-500', onConfirm, onCancel }) {
   return (

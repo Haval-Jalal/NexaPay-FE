@@ -1,3 +1,13 @@
+// ============================================================
+// helpers/validators.js – klientvalidatorer (speglar backend)
+// ============================================================
+// Backend är den auktoritativa valideringen, men UI vill ge snabb
+// feedback (röda fält, disablade submit-knappar) utan att slå mot
+// servern. Reglerna här MÅSTE matcha backend (FluentValidation,
+// OcrPolicy och Identity-lösenordskraven) – annars säger UI:t att
+// allt ser bra ut men servern returnerar 400.
+// ============================================================
+
 // Klient-validatorer som speglar reglerna i backend (FluentValidation + policies).
 // Används för snabb feedback i formulär innan request skickas.
 

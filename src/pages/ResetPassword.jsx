@@ -1,3 +1,11 @@
+// ============================================================
+// pages/ResetPassword.jsx – välj nytt lösenord
+// ============================================================
+// Nås via länken i återställningsmejlet med email+token i query.
+// POST:ar till /api/auth/reset-password. Token är engångsbruk
+// och giltigt i 24 timmar.
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { resetPassword } from '../api/auth'

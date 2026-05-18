@@ -1,3 +1,15 @@
+// ============================================================
+// pages/Dashboard.jsx – startsidan för inloggade
+// ============================================================
+// Visar:
+//   * Lista över användarens konton (eller alla, för staff).
+//   * Totalt saldo över öppna konton.
+//   * Sök/filter på status (Öppen/Fryst/Stängd).
+//   * "Nytt konto"-modal för Admin/BankManager/Teller/User.
+//
+// Använder useAccounts() (egen hook) istället för fetch-i-effekt.
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'

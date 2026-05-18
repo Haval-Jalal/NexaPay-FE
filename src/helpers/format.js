@@ -1,3 +1,11 @@
+// ============================================================
+// helpers/format.js – formaterings-hjälpare för UI
+// ============================================================
+// Samlar all formatering på ett ställe så att samma valuta-,
+// datum- och kortformat används överallt. Inga komponenter ska
+// kalla toLocaleString direkt – då blir formatet inkonsekvent.
+// ============================================================
+
 // Centraliserade formaterings-helpers så samma format används överallt i appen.
 
 // Formaterar belopp som svensk valuta. Default SEK om currency saknas.

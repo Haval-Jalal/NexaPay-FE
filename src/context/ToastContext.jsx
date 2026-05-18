@@ -1,3 +1,11 @@
+// ============================================================
+// context/ToastContext.jsx – globala notifikationer
+// ============================================================
+// Exponerar en `toast(message, type)`-funktion via useToast()
+// som visar en flytande notifikation längst ned till höger i
+// 4 sekunder. Stöder 'success' (default, grön) och 'error' (röd).
+// ============================================================
+
 import { useState, useCallback } from 'react'
 import { ToastContext } from './useToast'
 

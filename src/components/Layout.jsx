@@ -1,3 +1,12 @@
+// ============================================================
+// components/Layout.jsx – wrapper för inloggade sidor
+// ============================================================
+// Innehåller sidebar (navigation) + topbar (rollindikator + logout)
+// och renderar children i huvudområdet. Nav-länkar filtreras
+// rollvis via `can.*` så att Auditor t.ex. inte ser Överföring.
+// På mobil visas en hamburgermeny som öppnar sidopanelen.
+// ============================================================
+
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'

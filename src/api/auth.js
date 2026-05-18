@@ -1,3 +1,11 @@
+// ============================================================
+// api/auth.js – endpoint-wrappers för /api/auth/*
+// ============================================================
+// Tunna funktioner som mappar 1:1 mot AuthController. All
+// felhantering och JWT-injection sker i client.js – här fokuserar
+// vi bara på HTTP-metod, sökväg och body.
+// ============================================================
+
 import api from './client'
 
 export function login(email, password) {

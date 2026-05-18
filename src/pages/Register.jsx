@@ -1,3 +1,14 @@
+// ============================================================
+// pages/Register.jsx – registreringssidan
+// ============================================================
+// Skapar User-konto via POST /api/auth/register. Personalroller
+// kan inte skapas härifrån – det görs av Admin via /admin.
+// Visar realtids-lösenordsstyrka (svag/medel/stark) baserat på
+// samma regler som Identity-konfigurationen i backend.
+// Efter lyckad registrering visas en bekräftelseskärm som ber
+// användaren kolla mejlet för verifieringslänken.
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { register } from '../api/auth'

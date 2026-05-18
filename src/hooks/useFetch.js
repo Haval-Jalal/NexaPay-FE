@@ -1,3 +1,14 @@
+// ============================================================
+// hooks/useFetch.js – generisk data-hämtnings-hook
+// ============================================================
+// Ersätter det duplicerade mönstret useState + useEffect + try/catch
+// som annars upprepas på varje sida som hämtar data. Hanterar:
+//   * Loading-state (för skeletons/spinners)
+//   * Error-state (för inline-felmeddelanden)
+//   * "Race conditions" – stale-svar ignoreras via lokal `active`-flagga
+//   * Manuell refetch utan att ändra deps
+// ============================================================
+
 import { useState, useEffect, useCallback } from 'react'
 
 // Generisk GET-hook: kör fetchFn() och spårar data/loading/error.
