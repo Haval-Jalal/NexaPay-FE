@@ -1,3 +1,11 @@
+// ============================================================
+// pages/Settings.jsx – profil + lösenordsbyte
+// ============================================================
+// Visar inloggad användares e-post och roll och tillåter byte
+// av lösenord via POST /api/auth/change-password. Nuvarande
+// lösenord krävs som extra säkerhet (skydd mot session-hijack).
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import { changePassword } from '../api/auth'

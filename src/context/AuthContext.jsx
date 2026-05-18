@@ -1,3 +1,15 @@
+// ============================================================
+// context/AuthContext.jsx – global auth-state
+// ============================================================
+// Persisterar inloggad användare i localStorage (nyckel:
+// 'nexapay_user') så att sidan kan refreshas utan att tappa
+// inloggningen. Vid app-start synkar vi e-post och roll mot
+// GET /api/auth/me ifall användaren bytts på backend.
+//
+// `saveUser(data)` anropas av Login efter lyckad inloggning.
+// `logout()` revokar token på backend och rensar localStorage.
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import { logout as apiLogout, getMe } from '../api/auth'
 import { AuthContext } from './useAuth'

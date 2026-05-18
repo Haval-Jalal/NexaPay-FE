@@ -1,3 +1,16 @@
+// ============================================================
+// pages/AccountDetail.jsx – detaljsida för ett enskilt konto
+// ============================================================
+// Den största sidan i appen. Innehåller:
+//   * Saldo + kontoinformation (kontonummer, status, typ).
+//   * In- och uttagsformulär (med Idempotency-Key).
+//   * Transaktionshistorik (paginerad) grupperad per datum.
+//   * Kortlista med aktivera/blockera/avblockera.
+//   * Frys/avfrys (staff) och stäng konto (ägare).
+//
+// All actions är rollanpassade via can.* från utils/roles.
+// ============================================================
+
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'

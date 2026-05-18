@@ -1,3 +1,12 @@
+// ============================================================
+// pages/PayInvoice.jsx – betala faktura (bankgiro + OCR)
+// ============================================================
+// Användaren anger från-konto, belopp, bankgironummer och OCR.
+// OCR valideras klient-sida med mod-10 (Luhn) via isValidOcr()
+// – samma regel som backend tillämpar i OcrPolicy. Submit POST:ar
+// till /api/transactions/invoice-payment med Idempotency-Key.
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import { payInvoice } from '../api/transactions'

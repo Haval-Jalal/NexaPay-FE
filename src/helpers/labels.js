@@ -1,3 +1,12 @@
+// ============================================================
+// helpers/labels.js – enum → svenska etiketter + Tailwind-färger
+// ============================================================
+// Backend skickar enum-namn ("Open", "Checking", "Deposit") och
+// frontend översätter till svenska + färgkodning här. Genom att
+// hålla mappningarna centralt blir det enkelt att uppdatera språk
+// eller färgschema utan att leta i komponenterna.
+// ============================================================
+
 // Översättning från backend-enum-värden till svenska etiketter och Tailwind-klasser.
 // Hålls centralt så samma värden används på Dashboard, AccountDetail, etc.
 

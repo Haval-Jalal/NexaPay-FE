@@ -1,3 +1,12 @@
+// ============================================================
+// pages/ConfirmEmail.jsx – bekräfta e-postadress via mejllänk
+// ============================================================
+// Bekräftar konto via POST /api/auth/confirm-email. URL-parametrar
+// userId + token kommer från bekräftelsemejlet som AuthService
+// skickade vid registrering. useRef används för att förhindra
+// dubbel POST i StrictMode (utveckling) – tokens är engångsbruk.
+// ============================================================
+
 import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { confirmEmail } from '../api/auth'

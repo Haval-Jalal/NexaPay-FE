@@ -1,3 +1,11 @@
+// ============================================================
+// components/AuthLayout.jsx – minimal layout för auth-sidor
+// ============================================================
+// Centrerad layout med NexaPay-titel och valfri subtitel.
+// Används av Login, Register, ForgotPassword, ResetPassword
+// och ConfirmEmail där vi inte vill visa sidebar/topbar.
+// ============================================================
+
 export default function AuthLayout({ subtitle, children }) {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4 animate-fade-in">

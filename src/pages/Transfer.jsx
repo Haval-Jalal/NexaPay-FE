@@ -1,3 +1,13 @@
+// ============================================================
+// pages/Transfer.jsx – flytta pengar mellan konton
+// ============================================================
+// Användaren väljer ett från-konto (egna eller alla för staff) och
+// skriver in mottagarens kontonummer. När fältet stabiliserats
+// (debounce 400 ms) körs lookupAccount() för att visa mottagar-
+// namnet. Submit POST:ar till /api/transactions/transfer med
+// Idempotency-Key.
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import { lookupAccount } from '../api/accounts'

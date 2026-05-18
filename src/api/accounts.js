@@ -1,3 +1,10 @@
+// ============================================================
+// api/accounts.js – endpoint-wrappers för /api/accounts/*
+// ============================================================
+// CRUD + freeze/unfreeze + konto-lookup. `lookupAccount` används
+// av Transfer-sidan för att hitta mottagarkonto via kontonummer.
+// ============================================================
+
 import api from './client'
 
 export function getAccounts() {

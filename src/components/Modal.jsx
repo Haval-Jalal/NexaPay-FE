@@ -1,3 +1,11 @@
+// ============================================================
+// components/Modal.jsx – generisk modal-overlay
+// ============================================================
+// Återanvänds av formulär (skapa konto, skapa kort, etc.).
+// Backdropen täcker hela skärmen med svart 60% opacitet och
+// modalen centreras vertikalt. Stänger via X-knappen i headern.
+// ============================================================
+
 export default function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">

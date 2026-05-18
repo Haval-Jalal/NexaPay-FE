@@ -1,3 +1,15 @@
+// ============================================================
+// App.jsx – Router-uppsättning + globala providers
+// ============================================================
+// Wrapsar hela appen i AuthProvider (inloggad användare) och
+// ToastProvider (globala notifikationer). Definierar publika
+// routes (login/register/reset/confirm-email) och skyddade
+// routes (allt annat) som wrappas i ProtectedRoute.
+//
+// AdminRoute är en extra-skyddad subroute som kräver Admin-rollen
+// och annars omdirigerar till /dashboard.
+// ============================================================
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/useAuth'

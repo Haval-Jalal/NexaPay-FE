@@ -1,3 +1,14 @@
+// ============================================================
+// pages/Admin.jsx – administrationspanel (Admin-only)
+// ============================================================
+// Endast Admin har åtkomst (skyddas av AdminRoute i App.jsx).
+// Funktioner:
+//   * Skapa ny användare med valbar roll (User/Teller/Auditor/
+//     BankManager/Admin). Personalroller kräver @nexapay.com-mejl.
+//   * Lista alla användare med deras roll.
+//   * Ta bort användare (med bekräftelsedialog).
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'

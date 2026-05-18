@@ -1,3 +1,11 @@
+// ============================================================
+// api/cards.js – endpoint-wrappers för /api/cards/*
+// ============================================================
+// Kort-CRUD och tillståndshanterande operationer (activate/block/
+// unblock). createCard returnerar fullt kortnummer + CVV – visas
+// EN gång i UI och sparas aldrig på klienten.
+// ============================================================
+
 import api from './client'
 
 export function getCardsByAccount(accountId) {
