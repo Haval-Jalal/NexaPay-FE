@@ -69,7 +69,7 @@ export default function Register() {
     <AuthLayout subtitle="Skapa ett konto">
       <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-8 space-y-5 border border-gray-800">
         {error && (
-          <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5">
+          <p role="alert" className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5">
             {error}
           </p>
         )}

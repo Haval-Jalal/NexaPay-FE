@@ -199,7 +199,7 @@ export default function Dashboard() {
         <Modal title="Skapa konto" onClose={() => setShowCreate(false)}>
           <form onSubmit={handleCreate} className="space-y-4">
             {createError && (
-              <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2">
+              <p role="alert" className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2">
                 {createError}
               </p>
             )}

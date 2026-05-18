@@ -24,10 +24,27 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Login-anrop får 401 vid fel lösenord — då vill vi INTE rensa+redirecta,
+// utan låta Login-sidan visa felmeddelandet inline.
+function isAuthEndpoint(url = '') {
+  return url.includes('/api/auth/login') || url.includes('/api/auth/register')
+}
+
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
     const status = error.response?.status
+    const reqUrl = error.config?.url ?? ''
+
+    if (status === 401 && !isAuthEndpoint(reqUrl)) {
+      const onLoginPage = window.location.pathname === '/login'
+      localStorage.removeItem('nexapay_user')
+      if (!onLoginPage) {
+        const next = encodeURIComponent(window.location.pathname + window.location.search)
+        window.location.assign(`/login?session=expired&next=${next}`)
+      }
+    }
+
     const message =
       error.response?.data?.message ??
       error.message ??
