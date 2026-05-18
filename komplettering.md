@@ -4,7 +4,29 @@ Granskning av både **NexaPay-FE** (React) och **NexaPay** (.NET Core API) mot k
 
 Status: ✅ = fixad, ❌ = saknas, ⚠ = finns delvis men behöver kompletteras, 🔒 = kan inte verifieras lokalt (måste kontrolleras på GitHub).
 
-**Senaste uppdatering (2026-05-17):** **🎉 ALLT KLART – AUDITERAT 100 %.** Inga öppna punkter kvar. Samtliga FE-, BE- och META-krav är åtgärdade, committade, pushade och verifierade live.
+**Senaste uppdatering (2026-05-18):** **🎉 ALLT KLART – DOKUMENTATION + KOMMENTARER KLARA.** VG-auditen är klar och dokumentationen är nu komplett (svenska filhuvuden på all kod + fullständigt omskrivna READMEs i båda repos).
+
+## 📝 Dokumentation och kommentarer (2026-05-18)
+
+| Repo | Branch | Commit | PR | Status |
+|---|---|---|---|---|
+| **FE** (`Haval-Jalal/NexaPay-FE`) | `docs/swedish-comments-and-readme` | 2195d21 | [#14](https://github.com/Haval-Jalal/NexaPay-FE/pull/14) | ✅ **MERGAD** till master (squash) |
+| **BE** (`b1-loop/NexaPay`) | `docs/swedish-comments-and-readme` | 8efff3e | [#32](https://github.com/b1-loop/NexaPay/pull/32) | ⏳ **VÄNTAR PÅ REVIEW** av @b1-loop |
+
+**Vad som gjorts:**
+- Svenska header-kommentarer på **alla** hand-skrivna källfiler (Domain + Application + Infrastructure + API + Tests + FE src/) – totalt 142 filer.
+- Inga kodändringar (endast kommentarer ovanför using-/import-/namespace-direktiv).
+- Komplett omskrivning av **README.md** i båda repos på svenska med fullständig innehållsförteckning enligt best practice (snabbstart, tech stack, mappstruktur, arkitektur, API-endpoints, RBAC, idempotens, säkerhet, installation, konfiguration, felsökning, bidragsguide).
+
+**Verifierat:**
+- ✅ `dotnet build` – 0 warnings, 0 errors
+- ✅ `dotnet test` – **218 passed**, 0 failed
+- ✅ `npm run build` – produktionsbygget passerar
+- ✅ `npm run lint` – inga ESLint-fel
+- ✅ FE PR mergad till master via squash + branch raderad
+- ⏳ BE PR ligger på #32 och kräver att @b1-loop klickar **Approve** + **Merge** (branch protection kräver minst 1 godkännande som inte är PR-skaparen).
+
+**Nästa steg:** Be @b1-loop öppna https://github.com/b1-loop/NexaPay/pull/32 och klicka *Approve* → *Squash and merge*.
 
 ## 🔍 Slutaudit 2026-05-17 (denna kontroll)
 
